@@ -316,11 +316,35 @@ MTS_VARIANT MonteCarloIntegrator<Float, Spectrum>::MonteCarloIntegrator(const Pr
 
 MTS_VARIANT MonteCarloIntegrator<Float, Spectrum>::~MonteCarloIntegrator() { }
 
+// -----------------------------------------------------------------------------
+
+MTS_VARIANT PathLengthOriginIntegrator<Float, Spectrum>::PathLengthOriginIntegrator(const Properties &props) : Base(props) { }
+
+MTS_VARIANT std::tuple<Spectrum, typename PathLengthOriginIntegrator<Float, Spectrum>::Point3f, std::vector<Float>, typename PathLengthOriginIntegrator<Float, Spectrum>::Mask>
+PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const Scene *scene,
+                                                                           Sampler * sampler,
+                                                                           const RayDifferential3f &ray_,
+                                                                           const Medium *medium,
+                                                                           Float *aovs,
+                                                                           Mask active) const {
+    MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
+    
+    Throw("We actually made it into the method");
+
+}
+
+
+// -----------------------------------------------------------------------------
+
 MTS_IMPLEMENT_CLASS_VARIANT(Integrator, Object, "integrator")
 MTS_IMPLEMENT_CLASS_VARIANT(SamplingIntegrator, Integrator)
 MTS_IMPLEMENT_CLASS_VARIANT(MonteCarloIntegrator, SamplingIntegrator)
+MTS_IMPLEMENT_CLASS_VARIANT(PathLengthOriginIntegrator, MonteCarloIntegrator)
 
 MTS_INSTANTIATE_CLASS(Integrator)
 MTS_INSTANTIATE_CLASS(SamplingIntegrator)
 MTS_INSTANTIATE_CLASS(MonteCarloIntegrator)
+//MTS_INSTANTIATE_CLASS(PathLengthOriginIntegrator)
+MTS_EXPORT_PLUGIN(PathLengthOriginIntegrator, "Path Tracer integrator including path length and last point of interaction");
+
 NAMESPACE_END(mitsuba)

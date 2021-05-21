@@ -41,16 +41,18 @@ public:
     MTS_IMPORT_BASE(MonteCarloIntegrator, m_max_depth, m_rr_depth)
     MTS_IMPORT_TYPES(Scene, Sampler, Medium, Emitter, EmitterPtr, BSDF, BSDFPtr)
 
-    PathLengthOriginIntegrator(const Properties &props) : Base(props) { }
+    PathLengthOriginIntegrator(const Properties &props) : Base(props) {  }
 
-    std::pair<Spectrum, Mask> sample(const Scene *scene,
-                                     Sampler *sampler,
-                                     const RayDifferential3f &ray_,
-                                     const Medium * /* medium */,
-                                     Float * /* aovs */,
-                                     Mask active) const override {
-        MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
 
+    std::pair<Spectrum /* result: weight/strength associated with ray*/, 
+              Mask /* valid_ray: boolean, if the ray originates from an emitter*/> 
+    sample_with_length_and_origin(const Scene *scene,
+           Sampler * sampler,
+           const RayDifferential3f &ray,
+           const Medium *,
+           Float *,
+           Mask active) const override {
+    MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
         RayDifferential3f ray = ray_;
 
         // Tracks radiance scaling due to index of refraction changes
@@ -61,9 +63,12 @@ public:
 
         Spectrum throughput(1.f), result(0.f);
 
+        std::vector<Float> covered_distances;
+
         // ---------------------- First intersection ----------------------
 
         SurfaceInteraction3f si = scene->ray_intersect(ray, active);
+        Point3f last_interaction_point = si.p;
         Mask valid_ray = si.is_valid();
         EmitterPtr emitter = si.emitter(scene);
 
@@ -73,6 +78,7 @@ public:
 
             if (any_or<true>(neq(emitter, nullptr)))
                 result[active] += emission_weight * throughput * emitter->eval(si, active);
+                
 
             active &= si.is_valid();
 
@@ -150,11 +156,15 @@ public:
                 emission_weight = mis_weight(bs.pdf, emitter_pdf);
             }
 
+            // Store distance traveled along the ray
+            covered_distances.push_back(si.t);
+
             si = std::move(si_bsdf);
         }
 
-        return { result, valid_ray };
-    }
+        //return { result, valid_ray };
+        return {result , last_interaction_point, covered_distances, valid_ray};
+    } 
 
     //! @}
     // =============================================================
@@ -163,6 +173,7 @@ public:
         return tfm::format("PathLengthOriginIntegrator[\n"
             "  max_depth = %i,\n"
             "  rr_depth = %i\n"
+            "    laster_interaction_point:"
             "]", m_max_depth, m_rr_depth);
     }
 
@@ -173,6 +184,9 @@ public:
     }
 
     MTS_DECLARE_CLASS()
+//protected:
+//    virtual ~PathLengthOriginIntegrator();
+
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(PathLengthOriginIntegrator, MonteCarloIntegrator)
