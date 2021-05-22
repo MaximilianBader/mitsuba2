@@ -258,12 +258,6 @@ public:
      * \param active
      *    A mask that indicates which SIMD lanes are active
      *
-     * \param aov
-     *    Integrators may return one or more arbitrary output variables (AOVs)
-     *    via this parameter. If \c nullptr is provided to this argument, no
-     *    AOVs should be returned. Otherwise, the caller guarantees that space
-     *    for at least <tt>aov_names().size()</tt> entries has been allocated.
-     *
      * \return
      *    A tuple containing a 
      *      - spectrum 'result' weight/strength associated with ray
@@ -278,7 +272,6 @@ public:
                                                                                          Sampler * sampler,
                                                                                          const RayDifferential3f &ray_,
                                                                                          const Medium *medium = nullptr,
-                                                                                         Float *aovs = nullptr,
                                                                                          Mask active = true) const;
 
     std::pair<Spectrum, Mask> sample(const Scene *,Sampler *,const RayDifferential3f &,const Medium * ,Float * ,Mask ) const override {

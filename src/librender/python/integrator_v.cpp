@@ -171,6 +171,7 @@ MTS_PY_EXPORT(Integrator) {
     // Add custom path length integrator
     py::class_<PathLengthOriginIntegrator<Float, Spectrum>, MonteCarloIntegrator,ref<PathLengthOriginIntegrator<Float, Spectrum>>>(m, "PathLengthOriginIntegrator")
         .def(py::init<const Properties&>())
-        .def("sample_with_length_and_origin", &PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin);
+        .def("sample_with_length_and_origin", &PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin,
+            "scene"_a, "sampler"_a, "ray"_a, "medium"_a = nullptr, "active"_a = true);
     
 }
