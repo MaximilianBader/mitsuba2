@@ -354,6 +354,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
         if (any_or<true>(neq(emitter, nullptr)))
             result[active] += emission_weight * throughput * emitter->eval(si, active);
+        
                 
         active &= si.is_valid();
 
@@ -373,7 +374,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         // since it causes a costly synchronization.
         if ((uint32_t) depth >= (uint32_t) m_max_depth ||
            ((!is_cuda_array_v<Float> || m_max_depth < 0) && none(active)))
-            break;
+                break;
+            
 
         // --------------------- Emitter sampling ---------------------
 
@@ -382,7 +384,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         Mask active_e = active && has_flag(bsdf->flags(), BSDFFlags::Smooth);
 
         if (likely(any_or<true>(active_e))) {
-            auto [ds, emitter_val] = scene->sample_emitter_direction(
+            auto [ds, emitter_val,emitter_pos] = scene->sample_emitter_direction_with_pos(
                 si, sampler->next_2d(active_e), true, active_e);
             active_e &= neq(ds.pdf, 0.f);
 
@@ -396,6 +398,11 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
             Float mis = select(ds.delta, 1.f, mis_weight(ds.pdf, bsdf_pdf));
             result[active_e] += mis * throughput * bsdf_val * emitter_val;
+
+            // Add covered distance from emitter to current position
+            // NOTE: ONLY WORKS FOR SINGLE EMITTER!
+            if (any(active_e))
+                covered_distances.push_back(norm(si.p-emitter_pos));
         }
 
         // ----------------------- BSDF sampling ----------------------
@@ -409,6 +416,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         active &= any(neq(depolarize(throughput), 0.f));
         if (none_or<false>(active))
             break;
+            
 
         eta *= bs.eta;
 

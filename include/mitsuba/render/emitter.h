@@ -61,6 +61,7 @@ template <typename Float, typename Spectrum>
 class MTS_EXPORT_RENDER Emitter : public Endpoint<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Endpoint)
+    MTS_IMPORT_CORE_TYPES()
 
     /// Is this an environment map light emitter?
     bool is_environment() const {
@@ -70,6 +71,10 @@ public:
     /// Flags for all components combined.
     uint32_t flags(mask_t<Float> /*active*/ = true) const { return m_flags; }
 
+    // Get origin of emitter 
+    Point3f get_p() const {
+        return Point3f(this->world_transform()->eval(Float(0.f)).translation());
+    }
 
     ENOKI_CALL_SUPPORT_FRIEND()
     MTS_DECLARE_CLASS()
@@ -95,6 +100,7 @@ ENOKI_CALL_SUPPORT_TEMPLATE_BEGIN(mitsuba::Emitter)
     ENOKI_CALL_SUPPORT_METHOD(sample_ray)
     ENOKI_CALL_SUPPORT_METHOD(eval)
     ENOKI_CALL_SUPPORT_METHOD(sample_direction)
+    ENOKI_CALL_SUPPORT_METHOD(get_p)
     ENOKI_CALL_SUPPORT_METHOD(pdf_direction)
     ENOKI_CALL_SUPPORT_METHOD(is_environment)
     ENOKI_CALL_SUPPORT_GETTER(flags, m_flags)

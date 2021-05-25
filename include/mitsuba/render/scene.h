@@ -110,6 +110,36 @@ public:
                              Mask active = true) const;
 
     /**
+     * \brief Direct illumination sampling routine
+     *
+     * Given an arbitrary reference point in the scene, this method samples a
+     * direction from the reference point to towards an emitter.
+     *
+     * Ideally, the implementation should importance sample the product of the
+     * emission profile and the geometry term between the reference point and
+     * the position on the emitter.
+     *
+     * \param ref
+     *    A reference point somewhere within the scene
+     *
+     * \param sample
+     *    A uniformly distributed 2D vector
+     *
+     * \param test_visibility
+     *    When set to \c true, a shadow ray will be cast to ensure that the
+     *    sampled emitter position and the reference point are mutually visible.
+     *
+     * \return
+     *    Radiance received along the sampled ray divided by the sample
+     *    probability and origin of emitter
+     */
+    std::tuple<DirectionSample3f, Spectrum,Point3f>
+    sample_emitter_direction_with_pos(const Interaction3f &ref,
+                             const Point2f &sample,
+                             bool test_visibility = true,
+                             Mask active = true) const;
+
+    /**
      * \brief Evaluate the probability density of the  \ref
      * sample_emitter_direct() technique given an filled-in \ref
      * DirectionSample record.
