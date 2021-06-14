@@ -195,6 +195,9 @@ Scene<Float, Spectrum>::sample_emitter_direction(const Interaction3f &ref, const
             // Account for the discrete probability of sampling this emitter
             ds.pdf *= emitter_pdf;
             spec *= rcp(emitter_pdf);
+
+            // DEBUGGING:
+            std::cout << "scene.cpp - sample_emitter_direction: randomly selected emitter " << index << "\n";
         }
 
         active &= neq(ds.pdf, 0.f);
@@ -211,68 +214,6 @@ Scene<Float, Spectrum>::sample_emitter_direction(const Interaction3f &ref, const
     }
 
     return { ds, spec };
-}
-
-MTS_VARIANT std::tuple<typename Scene<Float, Spectrum>::DirectionSample3f, Spectrum,typename Scene<Float, Spectrum>::Point3f>
-Scene<Float, Spectrum>::sample_emitter_direction_with_pos(const Interaction3f &ref, const Point2f &sample_,
-                                                 bool test_visibility, Mask active) const {
-    MTS_MASKED_FUNCTION(ProfilerPhase::SampleEmitterDirection, active);
-
-    using EmitterPtr = replace_scalar_t<Float, Emitter*>;
-
-    Point2f sample(sample_);
-    DirectionSample3f ds;
-    Spectrum spec;
-    Point3f emitter_pos;
-
-    if (likely(!m_emitters.empty())) {
-        if (m_emitters.size() == 1) {
-            // Fast path if there is only one emitter
-            std::tie(ds, spec) = m_emitters[0]->sample_direction(ref, sample, active);
-            
-            // get emitter position
-            emitter_pos = m_emitters[0]->get_p();
-        } else {
-            ScalarFloat emitter_pdf = 1.f / m_emitters.size();
-
-            // Randomly pick an emitter
-            UInt32 index =
-                min(UInt32(sample.x() * (ScalarFloat) m_emitters.size()),
-                    (uint32_t) m_emitters.size() - 1);
-
-            // Rescale sample.x() to lie in [0,1) again
-            sample.x() = (sample.x() - index*emitter_pdf) * m_emitters.size();
-
-            EmitterPtr emitter = gather<EmitterPtr>(m_emitters.data(), index, active);
-
-            // Sample a direction towards the emitter
-            std::tie(ds, spec) = emitter->sample_direction(ref, sample, active);
-
-            // Account for the discrete probability of sampling this emitter
-            ds.pdf *= emitter_pdf;
-            spec *= rcp(emitter_pdf);
-            
-            // get emitter position
-            emitter_pos = emitter->get_p();
-            
-        }
-
-        active &= neq(ds.pdf, 0.f);
-
-        // Perform a visibility test if requested
-        if (test_visibility && any_or<true>(active)) {
-            Ray3f ray(ref.p, ds.d, math::RayEpsilon<Float> * (1.f + hmax(abs(ref.p))),
-                      ds.dist * (1.f - math::ShadowEpsilon<Float>), ref.time, ref.wavelengths);
-            spec[ray_test(ray, active)] = 0.f;
-            emitter_pos[ray_test(ray, active)] = 0.f;
-        }
-    } else {
-        ds = zero<DirectionSample3f>();
-        spec = 0.f;
-        emitter_pos = zero<Point3f>();
-    }
-
-    return { ds, spec, emitter_pos};
 }
 
 MTS_VARIANT Float

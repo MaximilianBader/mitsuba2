@@ -60,9 +60,9 @@ constexpr auto has_flag(UInt32 flags, EmitterFlags f)            { return neq(fl
 template <typename Float, typename Spectrum>
 class MTS_EXPORT_RENDER Emitter : public Endpoint<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(Endpoint)
     MTS_IMPORT_CORE_TYPES()
-
+    MTS_IMPORT_BASE(Endpoint,m_world_transform,m_shape)
+    
     /// Is this an environment map light emitter?
     bool is_environment() const {
         return has_flag(m_flags, EmitterFlags::Infinite) && !has_flag(m_flags, EmitterFlags::Delta);
@@ -72,8 +72,12 @@ public:
     uint32_t flags(mask_t<Float> /*active*/ = true) const { return m_flags; }
 
     // Get origin of emitter 
-    Point3f get_p() const {
-        return Point3f(this->world_transform()->eval(Float(0.f)).translation());
+    Point3f get_p(mask_t<Float> active = true) const {
+        if (any_or<true>(neq(m_shape, nullptr))) {
+            return m_shape->sample_position(Float(0.f), Point2f(0.5f,0.5f), active).p;
+        } else {
+            return m_world_transform->eval(Float(0.f), active).transform_affine(Point3f{ 0.f, 0.f, 0.f });
+        }
     }
 
     ENOKI_CALL_SUPPORT_FRIEND()

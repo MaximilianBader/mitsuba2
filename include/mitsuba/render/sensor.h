@@ -15,8 +15,9 @@ NAMESPACE_BEGIN(mitsuba)
 template <typename Float, typename Spectrum>
 class MTS_EXPORT_RENDER Sensor : public Endpoint<Float, Spectrum> {
 public:
+    MTS_IMPORT_BASE(Endpoint, sample_ray, m_needs_sample_3,m_world_transform,m_shape)
     MTS_IMPORT_TYPES(Film, Sampler)
-    MTS_IMPORT_BASE(Endpoint, sample_ray, m_needs_sample_3)
+    
 
     // =============================================================
     //! @{ \name Sensor-specific sampling functions
@@ -118,6 +119,15 @@ public:
 
     void parameters_changed(const std::vector<std::string> &/*keys*/ = {}) override {
         m_resolution = ScalarVector2f(m_film->crop_size());
+    }
+
+    // Get origin of sensor 
+    Point3f get_p(Mask active = true) const {
+        if (any_or<true>(neq(m_shape, nullptr))) {
+            return m_shape->sample_position(Float(0.f), Point2f(0.5f,0.5f), active).p;
+        } else {
+            return m_world_transform->eval(Float(0.f), active).transform_affine(Point3f{ 0.f, 0.f, 0.f });
+        }
     }
 
     MTS_DECLARE_CLASS()

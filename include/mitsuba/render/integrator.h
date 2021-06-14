@@ -232,11 +232,16 @@ protected:
 template <typename Float, typename Spectrum>
 class MTS_EXPORT_RENDER PathLengthOriginIntegrator : public MonteCarloIntegrator<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(MonteCarloIntegrator, m_max_depth, m_rr_depth)
-    MTS_IMPORT_TYPES(Scene, Sampler, Medium, Emitter, EmitterPtr, BSDF, BSDFPtr)
+    MTS_IMPORT_BASE(MonteCarloIntegrator, 
+                    /* member variables*/ m_max_depth, m_rr_depth, m_stop, m_samples_per_pass,m_render_timer,m_timeout,m_block_size, 
+                    /* member functions*/ should_stop, aov_names)
+    MTS_IMPORT_TYPES(Scene, Sampler, Medium, Emitter, EmitterPtr, BSDF, BSDFPtr, Sensor, Film, ImageBlock)
 
     /// Create an integrator
     PathLengthOriginIntegrator(const Properties &props);
+
+    // general render fct
+    bool render_with_length(Scene *scene, Sensor *sensor);
 
     /**
      * \brief Sample the incident radiance along a ray including tracking of wavelength.
@@ -268,13 +273,19 @@ public:
      *        the returned spectrum contains the contribution of environment maps, if present.
      *        The mask can be used to estimate a suitable alpha channel of a rendered image.
      */
-    std::tuple<Spectrum, Point3f, std::vector<Float>, Mask>sample_with_length_and_origin(const Scene *scene,
+    std::tuple<std::vector<Spectrum>, Point3f, std::vector<std::vector<Float>>, Mask>sample_with_length_and_origin(const Scene *scene,
                                                                                          Sampler * sampler,
                                                                                          const RayDifferential3f &ray_,
                                                                                          const Medium *medium = nullptr,
                                                                                          Mask active = true) const;
 
-    std::pair<Spectrum, Mask> sample(const Scene *,Sampler *,const RayDifferential3f &,const Medium * ,Float * ,Mask ) const override {
+    std::pair<Spectrum, Mask> sample(const Scene *scene,
+                                     Sampler *sampler,
+                                     const RayDifferential3f &ray_,
+                                     const Medium * /* medium */,
+                                     Float * /* aovs */,
+                                     Mask active) const override {
+        MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
         Throw("PathLengthOriginIntegrator:: sample() has been replaced by sample_with_length_and_origin!");
     }
 
@@ -295,6 +306,23 @@ public:
     ~PathLengthOriginIntegrator() {}
 
     MTS_DECLARE_CLASS()
+
+protected:
+
+    void render_block(const Scene *scene,
+                      const Sensor *sensor,
+                      Sampler *sampler,
+                      ImageBlock *block,
+                      size_t sample_count,
+                      size_t block_id) const;
+
+    void render_sample(const Scene *scene,
+                       const Sensor *sensor,
+                       Sampler *sampler,
+                       ImageBlock *block,
+                       const Vector2f &pos,
+                       ScalarFloat diff_scale_factor,
+                       Mask active = true) const;
 
 };
 

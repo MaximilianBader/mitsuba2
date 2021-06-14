@@ -172,6 +172,37 @@ MTS_PY_EXPORT(Integrator) {
     py::class_<PathLengthOriginIntegrator<Float, Spectrum>, MonteCarloIntegrator,ref<PathLengthOriginIntegrator<Float, Spectrum>>>(m, "PathLengthOriginIntegrator")
         .def(py::init<const Properties&>())
         .def("sample_with_length_and_origin", &PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin,
-            "scene"_a, "sampler"_a, "ray"_a, "medium"_a = nullptr, "active"_a = true);
+            "scene"_a, "sampler"_a, "ray"_a, "medium"_a = nullptr, "active"_a = true)
+        .def("render_with_length",
+            [&](PathLengthOriginIntegrator<Float, Spectrum> *integrator, Scene *scene, Sensor *sensor) {
+                py::gil_scoped_release release;
+
+#if MTS_HANDLE_SIGINT
+                // Install new signal handler
+                sigint_handler = [integrator]() {
+                    integrator->cancel();
+                };
+
+                sigint_handler_prev = signal(SIGINT, [](int) {
+                    Log(Warn, "Received interrupt signal, winding down..");
+                    if (sigint_handler) {
+                        sigint_handler();
+                        sigint_handler = std::function<void()>();
+                        signal(SIGINT, sigint_handler_prev);
+                        raise(SIGINT);
+                    }
+                });
+#endif
+
+                bool res = integrator->render_with_length(scene, sensor);
+
+#if MTS_HANDLE_SIGINT
+                // Restore previous signal handler
+                signal(SIGINT, sigint_handler_prev);
+#endif
+
+                return res;
+            },
+            "scene"_a, "sensor"_a);
     
 }

@@ -52,7 +52,8 @@ MTS_PY_EXPORT(Emitter) {
     auto emitter = py::class_<Emitter, PyEmitter, Endpoint, ref<Emitter>>(m, "Emitter", D(Emitter))
         .def(py::init<const Properties&>())
         .def_method(Emitter, is_environment)
-        .def_method(Emitter, flags);
+        .def_method(Emitter, flags)
+        .def("get_p", &Emitter::get_p,"active"_a = true);
 
     if constexpr (is_cuda_array_v<Float>)
         pybind11_type_alias<UInt64, EmitterPtr>();
