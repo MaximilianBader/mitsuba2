@@ -282,8 +282,8 @@ public:
     std::pair<Spectrum, Mask> sample(const Scene *scene,
                                      Sampler *sampler,
                                      const RayDifferential3f &ray_,
-                                     const Medium * /* medium */,
-                                     Float * /* aovs */,
+                                     const Medium * /* medium */ ,
+                                     Float * /* aovs */ ,
                                      Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
         Throw("PathLengthOriginIntegrator:: sample() has been replaced by sample_with_length_and_origin!");

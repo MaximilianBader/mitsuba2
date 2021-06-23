@@ -407,7 +407,8 @@ MTS_VARIANT bool PathLengthOriginIntegrator<Float, Spectrum>::render_with_length
 
                     film->put(block);
 
-                    /* Critical section: update progress bar */ {
+                    // Critical section: update progress bar
+                    {
                         std::lock_guard<std::mutex> lock(mutex);
                         blocks_done++;
                         progress->update(blocks_done / (ScalarFloat) total_blocks);
@@ -564,8 +565,8 @@ MTS_VARIANT std::tuple<std::vector<Spectrum>, typename PathLengthOriginIntegrato
 PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const Scene *scene,
                                                                            Sampler *sampler,
                                                                            const RayDifferential3f &ray_,
-                                                                           const Medium * /*medium*/,
-                                                                           Mask active) const {
+                                                                           const Medium * /*medium*/   ,
+                                                                         Mask active) const {
     MTS_MASKED_FUNCTION(ProfilerPhase::SamplingIntegratorSample, active);
     
     // Select ray
