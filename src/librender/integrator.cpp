@@ -722,7 +722,6 @@ MTS_IMPLEMENT_CLASS_VARIANT(PathLengthOriginIntegrator, MonteCarloIntegrator)
 MTS_INSTANTIATE_CLASS(Integrator)
 MTS_INSTANTIATE_CLASS(SamplingIntegrator)
 MTS_INSTANTIATE_CLASS(MonteCarloIntegrator)
-//MTS_INSTANTIATE_CLASS(PathLengthOriginIntegrator)
-MTS_EXPORT_PLUGIN(PathLengthOriginIntegrator, "Path Tracer integrator including path length and last point of interaction");
+MTS_INSTANTIATE_CLASS(PathLengthOriginIntegrator)
 
 NAMESPACE_END(mitsuba)
