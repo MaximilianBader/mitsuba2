@@ -111,6 +111,3 @@ endif()
 
 # Register the test directory
 add_tests(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-
-# register the own plugin
-add_plugin(path_length_origin    integrator.cpp)

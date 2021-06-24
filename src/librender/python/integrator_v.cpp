@@ -1,4 +1,5 @@
 #include <mitsuba/render/integrator.h>
+#include <mitsuba/render/pathLengthOriginIntegrator.h>
 #include <mitsuba/core/properties.h>
 #include <mitsuba/core/thread.h>
 #include <mitsuba/core/tls.h>
