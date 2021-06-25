@@ -79,6 +79,8 @@ MTS_PY_EXPORT(Scene) {
         .def("integrator",
             [](Scene &scene) {
                 Integrator *o = scene.integrator();
+                if (auto tmp = dynamic_cast<PathLengthOriginIntegrator*>(o); tmp)
+                    return py::cast(tmp);
                 if (auto tmp = dynamic_cast<MonteCarloIntegrator *>(o); tmp)
                     return py::cast(tmp);
                 if (auto tmp = dynamic_cast<SamplingIntegrator *>(o); tmp)

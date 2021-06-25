@@ -40,6 +40,7 @@ static py::object caster(Object *o) {
     PY_TRY_CAST(BSDF);
     PY_TRY_CAST(Film);
 
+    PY_TRY_CAST(PathLengthOriginIntegrator);
     PY_TRY_CAST(MonteCarloIntegrator);
     PY_TRY_CAST(SamplingIntegrator);
     PY_TRY_CAST(Integrator);

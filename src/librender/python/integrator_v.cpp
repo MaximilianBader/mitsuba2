@@ -169,12 +169,12 @@ MTS_PY_EXPORT(Integrator) {
     MTS_PY_CLASS(MonteCarloIntegrator, SamplingIntegrator);
 
     // Add custom path length integrator
-    py::class_<PathLengthOriginIntegrator<Float, Spectrum>, MonteCarloIntegrator,ref<PathLengthOriginIntegrator<Float, Spectrum>>>(m, "PathLengthOriginIntegrator")
+    py::class_<PathLengthOriginIntegrator, MonteCarloIntegrator,ref<PathLengthOriginIntegrator>>(m, "PathLengthOriginIntegrator")
         .def(py::init<const Properties&>())
-        .def("sample_with_length_and_origin", &PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin,
+        .def("sample_with_length_and_origin", &PathLengthOriginIntegrator::sample_with_length_and_origin,
             "scene"_a, "sampler"_a, "ray"_a, "medium"_a = nullptr, "active"_a = true)
         .def("render_with_length",
-            [&](PathLengthOriginIntegrator<Float, Spectrum> *integrator, Scene *scene, Sensor *sensor) {
+            [&](PathLengthOriginIntegrator *integrator, Scene *scene, Sensor *sensor) {
                 py::gil_scoped_release release;
 
 #if MTS_HANDLE_SIGINT

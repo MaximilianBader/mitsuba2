@@ -320,6 +320,8 @@ MTS_VARIANT MonteCarloIntegrator<Float, Spectrum>::~MonteCarloIntegrator() { }
 
 MTS_VARIANT PathLengthOriginIntegrator<Float, Spectrum>::PathLengthOriginIntegrator(const Properties &props) : Base(props) { }
 
+MTS_VARIANT PathLengthOriginIntegrator<Float, Spectrum>::~PathLengthOriginIntegrator() { }
+
 MTS_VARIANT bool PathLengthOriginIntegrator<Float, Spectrum>::render_with_length(Scene *scene, Sensor *sensor) {
     ScopedPhase sp(ProfilerPhase::Render);
     m_stop = false;
