@@ -237,6 +237,11 @@ public:
                     /* member functions*/ should_stop, aov_names)
     MTS_IMPORT_TYPES(Scene, Sampler, Medium, Emitter, EmitterPtr, BSDF, BSDFPtr, Sensor, Film, ImageBlock)
 
+    /// Create an integrator
+    PathLengthOriginIntegrator(const Properties &props);
+
+    ///  destructor
+    virtual ~PathLengthOriginIntegrator();
     
     // general render fct
     bool render_with_length(Scene *scene, Sensor *sensor);
@@ -303,12 +308,6 @@ public:
     MTS_DECLARE_CLASS()
 
 protected:
-
-    /// Create an integrator
-    PathLengthOriginIntegrator(const Properties &props);
-
-    ///  destructor
-    virtual ~PathLengthOriginIntegrator();
 
     void render_block(const Scene *scene,
                       const Sensor *sensor,
