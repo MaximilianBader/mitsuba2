@@ -602,7 +602,6 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         if (any_or<true>(neq(emitter, nullptr)))
         {
             result[active] += emission_weight * throughput * emitter->eval(si, active);
-            std::cout << "Result added in first if statement.\n";
             
             // Add result to output vector
             current_result = result;
