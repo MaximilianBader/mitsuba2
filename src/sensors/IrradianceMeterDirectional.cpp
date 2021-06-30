@@ -63,20 +63,21 @@ public:
                "of radius 0.5 or lower(e.g. default box)");
         
         // Assign bounds of cuboid to sample rays from
-        if (props.has_property("x_max_bound"))
-            m_x_max_bound = props.float_("x_max_bound");
+        if (props.has_property("r_min_bound"))
+            m_r_min_bound = props.float_("r_min_bound");
         else
-            Throw("This sensor requires a lateral bound (x_max_bound, in m) for the bounding box to sample the ray direction!");
+            Throw("This sensor requires an axial bound (r_min_bound, in m) for the bounding box to sample the ray direction!");
        
+        if (props.has_property("phi_max_bound")) {
+            m_phi_max_bound = props.float_("phi_max_bound");
+            m_phi_max_bound = m_phi_max_bound/180*math::Pi<ScalarFloat>;
+        } else
+            Throw("This sensor requires a lateral bound (phi_max_bound, in degree) for the bounding box to sample the ray direction!");
+
         if (props.has_property("y_max_bound"))
             m_y_max_bound = props.float_("y_max_bound");
         else
             Throw("This sensor requires an out-of-plane elevation bound (y_max_bound, in m) for the bounding box to sample the ray direction!");
-         
-        if (props.has_property("z_max_bound"))
-            m_z_max_bound = props.float_("z_max_bound");
-        else
-            Throw("This sensor requires an axial bound (z_max_bound, in m) for the bounding box to sample the ray direction!");
     }
 
     std::pair<RayDifferential3f, Spectrum>
@@ -91,15 +92,16 @@ public:
         PositionSample3f ps = m_shape->sample_position(time, sample2, active);
 
         // 2. Sample directional component
-        Point3f point_fov = sample_point_from_FoV(wavelength_sample,sample3);
-        Vector3f dir_ray = point_fov-ps.p;
-        dir_ray /= norm(dir_ray);
+        //Point3f point_fov = sample_point_from_FoV(wavelength_sample,sample3);
+        //Vector3f dir_ray = point_fov-ps.p;
+        //dir_ray /= norm(dir_ray);
+        Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
 
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
 
         return std::make_pair(
-            RayDifferential3f(ps.p, dir_ray, time, wavelengths),
+            RayDifferential3f(ps.p, Frame3f(ps.n).to_world(dir_ray), time, wavelengths),
             unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat>
         );
     }
@@ -125,9 +127,9 @@ public:
         oss << "IrradianceMeterDirectional[" << std::endl
             << "  shape = " << m_shape << "," << std::endl
             << "  film = " << m_film << "," << std::endl
-            << "  x_box_bound = " << m_x_max_bound << "," << std::endl
+            << "  r_box_bound = " << m_r_min_bound << "," << std::endl
+            << "  phi_box_bound = " << m_phi_max_bound << "," << std::endl
             << "  y_box_bound = " << m_y_max_bound << "," << std::endl
-            << "  z_box_bound = " << m_z_max_bound << "," << std::endl
             << "]";
         return oss.str();
     }
@@ -135,27 +137,27 @@ public:
     MTS_DECLARE_CLASS()
 
 protected:
-    Float m_x_max_bound;         // Bound of Fov in x-dimension (lateral) -> lateral bound for rays to sample
+    Float m_r_min_bound;         // Bound of Fov in radial-dimension (axial) -> lateral bound for rays to sample
+    Float m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
     Float m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
-    Float m_z_max_bound;         // Bound of Fov in z-dimension (axial) -> axial bound for rays to sample
 
-    Point3f sample_point_from_FoV(const Float &sample1,const Point2f &sample3) const {
+    /*Point3f sample_point_from_FoV(const Float &sample1,const Point2f &sample3) const {
         return Point3f(2*m_x_max_bound*sample3[0]-m_x_max_bound,
                         2*m_y_max_bound*sample1-m_y_max_bound,
                         2*m_z_max_bound*sample3[1]-m_z_max_bound);
+    }*/
+
+    Vector3f square_to_polar_bounding_box_surface(const Point2f &point_on_square) const {
+        Float x_comp = m_r_min_bound*sin(2*m_y_max_bound*point_on_square.y());
+        Float y_comp = ( 2*m_phi_max_bound*m_r_min_bound*point_on_square.x() ) / ( m_y_max_bound*cos(2*m_y_max_bound*point_on_square.y()) );
+        Float z_comp = m_r_min_bound*cos(2*m_y_max_bound*point_on_square.y());
+        Vector3f dir_ray = {x_comp,y_comp,z_comp};
+        dir_ray /= norm(dir_ray);
+        
+        return dir_ray;
     }
+
 };
-
-// =============================================================================
-// Helper functions
-// =============================================================================
-/*template <typename Value>
-MTS_INLINE Vector<Value, 3> square_to_polar_bounding_box_surface(const Point<Value, 2> &sample3){
-    
-    
-    return {0.0f,0.0f,0.0f};
-}*/
-
 
 
 MTS_IMPLEMENT_CLASS_VARIANT(IrradianceMeterDirectional, Sensor)
