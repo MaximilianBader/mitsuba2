@@ -92,16 +92,14 @@ public:
         PositionSample3f ps = m_shape->sample_position(time, sample2, active);
 
         // 2. Sample directional component
-        //Point3f point_fov = sample_point_from_FoV(wavelength_sample,sample3);
-        //Vector3f dir_ray = point_fov-ps.p;
-        //dir_ray /= norm(dir_ray);
-        Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
+        Vector3f dir_ray = sample_dir_from_FoV(wavelength_sample,sample3, ps);
+        //Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
 
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
 
         return std::make_pair(
-            RayDifferential3f(ps.p, Frame3f(ps.n).to_world(dir_ray), time, wavelengths),
+            RayDifferential3f(ps.p, dir_ray /*Frame3f(ps.n).to_world(dir_ray)*/, time, wavelengths),
             unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat>
         );
     }
@@ -141,11 +139,16 @@ protected:
     Float m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
     Float m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
 
-    /*Point3f sample_point_from_FoV(const Float &sample1,const Point2f &sample3) const {
-        return Point3f(2*m_x_max_bound*sample3[0]-m_x_max_bound,
-                        2*m_y_max_bound*sample1-m_y_max_bound,
-                        2*m_z_max_bound*sample3[1]-m_z_max_bound);
-    }*/
+    Vector3f sample_dir_from_FoV(const Float &sample1,const Point2f &sample3, PositionSample3f ps) const {
+        
+        Point3f point_fov = Point3f(2*m_phi_max_bound*sample3[0]-m_phi_max_bound,
+                                    2*m_y_max_bound*sample1-m_y_max_bound,
+                                    2*m_r_min_bound*sample3[1]-m_r_min_bound);
+        Vector3f dir_ray = point_fov-ps.p;
+        dir_ray /= norm(dir_ray);
+
+        return dir_ray;
+    }
 
     Vector3f square_to_polar_bounding_box_surface(const Point2f &point_on_square) const {
         Float x_comp = m_r_min_bound*sin(2*m_y_max_bound*point_on_square.y());
