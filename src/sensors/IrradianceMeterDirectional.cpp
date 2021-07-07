@@ -92,14 +92,20 @@ public:
         PositionSample3f ps = m_shape->sample_position(time, sample2, active);
 
         // 2. Sample directional component
-        Vector3f dir_ray = sample_dir_from_FoV(wavelength_sample,sample3, ps);
-        //Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
+        //Vector3f dir_ray = sample_dir_from_FoV(wavelength_sample,sample3, ps);
+        Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
+
+        // DEBUGGING:
+        std::cout << "dir_ray: " << dir_ray << "\n";
+        std::cout << "ps.p: " << ps.p << "\n";
+        std::cout << "ps.n: " << ps.n << "\n";
+        std::cout << "Frame3f(ps.n).to_world(dir_ray): " << Frame3f(ps.n).to_world(dir_ray) << "\n";
 
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
 
         return std::make_pair(
-            RayDifferential3f(ps.p, dir_ray /*Frame3f(ps.n).to_world(dir_ray)*/, time, wavelengths),
+            RayDifferential3f(ps.p, Frame3f(ps.n).to_world(dir_ray), time, wavelengths),
             unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat>
         );
     }
@@ -151,13 +157,11 @@ protected:
     }
 
     Vector3f square_to_polar_bounding_box_surface(const Point2f &point_on_square) const {
-        Float x_comp = m_r_min_bound*sin(2*m_y_max_bound*point_on_square.y());
-        Float y_comp = ( 2*m_phi_max_bound*m_r_min_bound*point_on_square.x() ) / ( m_y_max_bound*cos(2*m_y_max_bound*point_on_square.y()) );
-        Float z_comp = m_r_min_bound*cos(2*m_y_max_bound*point_on_square.y());
-        Vector3f dir_ray = {x_comp,y_comp,z_comp};
-        dir_ray /= norm(dir_ray);
+        Float y_samp = 2*m_y_max_bound*point_on_square.y() - m_y_max_bound;
+        Float r_in_plane = safe_sqrt(1.f-y_samp*y_samp);
+        Float phi_samp = 2*m_phi_max_bound*point_on_square.x() - m_phi_max_bound;
         
-        return dir_ray;
+        return {r_in_plane*sin(phi_samp),y_samp,r_in_plane*cos(phi_samp)};
     }
 
 };
