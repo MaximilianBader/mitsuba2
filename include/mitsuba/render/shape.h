@@ -370,6 +370,9 @@ public:
     /// Return the area sensor associated with this shape (if any)
     Sensor *sensor() { return m_sensor.get(); }
 
+    /// Return the world transform
+    ScalarTransform4f to_world() const { return m_to_world; }
+
     /**
      * \brief Returns the number of sub-primitives that make up this shape
      *
@@ -534,6 +537,7 @@ ENOKI_CALL_SUPPORT_TEMPLATE_BEGIN(mitsuba::Shape)
                                    const typename Class::Medium *)
     ENOKI_CALL_SUPPORT_GETTER_TYPE(exterior_medium, m_exterior_medium,
                                    const typename Class::Medium *)
+    ENOKI_CALL_SUPPORT_GETTER(to_world, m_to_world)
     auto is_emitter() const { return neq(emitter(), nullptr); }
     auto is_sensor() const { return neq(sensor(), nullptr); }
     auto is_medium_transition() const { return neq(interior_medium(), nullptr) ||

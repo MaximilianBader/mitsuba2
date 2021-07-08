@@ -48,6 +48,7 @@ MTS_PY_EXPORT(Shape) {
                 "active"_a = true)
         .def("sensor", py::overload_cast<>(&Shape::sensor, py::const_))
         .def("bsdf", py::overload_cast<>(&Shape::bsdf, py::const_))
+        .def("to_world", &Shape::to_world)
         .def_method(Shape, parameters_grad_enabled)
         .def_method(Shape, primitive_count)
         .def_method(Shape, effective_primitive_count);
