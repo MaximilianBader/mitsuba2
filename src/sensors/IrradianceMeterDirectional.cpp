@@ -69,8 +69,7 @@ public:
             Throw("This sensor requires an axial bound (r_min_bound, in m) for the bounding box to sample the ray direction!");
        
         if (props.has_property("phi_max_bound")) {
-            m_phi_max_bound = props.float_("phi_max_bound");
-            m_phi_max_bound = m_phi_max_bound/180*math::Pi<ScalarFloat>;
+            m_phi_max_bound = deg_to_rad(props.float_("phi_max_bound"));
         } else
             Throw("This sensor requires a lateral bound (phi_max_bound, in degree) for the bounding box to sample the ray direction!");
 
@@ -94,12 +93,6 @@ public:
         // 2. Sample directional component
         //Vector3f dir_ray = sample_dir_from_FoV(wavelength_sample,sample3, ps);
         Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
-
-        // DEBUGGING:
-        std::cout << "dir_ray: " << dir_ray << "\n";
-        std::cout << "ps.p: " << ps.p << "\n";
-        std::cout << "ps.n: " << ps.n << "\n";
-        std::cout << "Frame3f(ps.n).to_world(dir_ray): " << Frame3f(ps.n).to_world(dir_ray) << "\n";
 
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
@@ -141,9 +134,9 @@ public:
     MTS_DECLARE_CLASS()
 
 protected:
-    Float m_r_min_bound;         // Bound of Fov in radial-dimension (axial) -> lateral bound for rays to sample
-    Float m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
-    Float m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
+    ScalarFloat m_r_min_bound;         // Bound of Fov in radial-dimension (axial) -> lateral bound for rays to sample
+    ScalarFloat m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
+    ScalarFloat m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
 
     Vector3f sample_dir_from_FoV(const Float &sample1,const Point2f &sample3, PositionSample3f ps) const {
         

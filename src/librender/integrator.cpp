@@ -677,7 +677,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             covered_distances_from_all_interactions.push_back(current_covered_distances);
 
             // Debugging
-            std::cout << "Direct emitter hit: mis=" << mis << ", throughput=" << throughput << ", bsdf_val=" << bsdf_val << ", emitter_val=" << emitter_val << ", last_interaction_point=" << last_interaction_point << ", current_covered_distances=" << current_covered_distances << "\n";
+            //std::cout << "Direct emitter hit: mis=" << mis << ", throughput=" << throughput << ", bsdf_val=" << bsdf_val << ", emitter_val=" << emitter_val << ", last_interaction_point=" << last_interaction_point << ", current_covered_distances=" << current_covered_distances << "\n";
 
         }
 
