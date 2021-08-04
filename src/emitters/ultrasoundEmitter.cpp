@@ -66,7 +66,10 @@ after which it remains at the maximum value. A projection texture may optionally
 template <typename Float, typename Spectrum>
 class UltrasoundEmitter final : public Emitter<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(Emitter, m_flags, m_medium, m_world_transform)
+    MTS_IMPORT_BASE(Emitter, /* parent class */
+                    m_flags, m_medium, m_world_transform, /* member variables */
+                    update_world_transform /* member functions */
+                    )
     MTS_IMPORT_TYPES(Scene, Texture)
 
     UltrasoundEmitter(const Properties &props) : Base(props) {
@@ -98,6 +101,39 @@ public:
             m_y_max_bound = props.float_("y_max_bound");
         else
             Throw("This emitter requires an out-of-plane elevation bound (y_max_bound, in m) for the bounding box to sample the ray direction!");
+
+        // Assign properties of transducer array
+        if (props.has_property("radius_array"))
+            m_radius_array = props.float_("radius_array");
+        else
+            Throw("This emitter requires a radius of the transducer array (radius_array, in m)!");
+       
+        if (props.has_property("angular_coverage")) {
+            m_angular_coverage = deg_to_rad(props.float_("angular_coverage"));
+        } else
+            Throw("This emitter requires an angular coverage of the transducer array (angular_coverage, in degree)!");
+
+        if (props.has_property("number_transducers"))
+            m_number_transducers = props.int_("number_transducers");
+        else
+            Throw("This emitter requires a number of transducers in the array (number_transducers, int)!");
+
+        // Initialize first transducer
+        m_index_transducer_current = 0;
+        rotate_to_transducer_position();
+    }
+
+    uint32_t select_next_transducer(){
+        // Update 
+        if(m_index_transducer_current < m_number_transducers){
+            m_index_transducer_current++;  
+        } else {
+            m_index_transducer_current = 0;
+        }
+
+        rotate_to_transducer_position();
+        
+        return m_index_transducer_current;
     }
 
     std::pair<Ray3f, Spectrum> sample_ray(Float time, Float wavelength_sample,
@@ -159,7 +195,7 @@ public:
     Spectrum eval(const SurfaceInteraction3f &, Mask) const override { return 0.f; }
 
     ScalarBoundingBox3f bbox() const override {
-        return m_world_transform->translation_bounds();
+        m_world_transform->translation_bounds();
     }
 
     void traverse(TraversalCallback *callback) override {
@@ -175,6 +211,9 @@ public:
             << "  m_r_min_bound = " << m_r_min_bound << "," << std::endl
             << "  m_phi_max_bound = " << m_phi_max_bound << "," << std::endl
             << "  m_y_max_bound = " << m_y_max_bound << "," << std::endl
+            << "  m_radius_array = " << m_radius_array << "," << std::endl
+            << "  m_angular_coverage = " << m_angular_coverage << "," << std::endl
+            << "  m_number_transducers = " << m_number_transducers << "," << std::endl
             << "  texture = " << (m_texture ? string::indent(m_texture) : "")
                         << "]";
         return oss.str();
@@ -187,6 +226,11 @@ private:
     ScalarFloat m_r_min_bound;         // Bound of Fov in radial-dimension (axial) -> lateral bound for rays to sample
     ScalarFloat m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
     ScalarFloat m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
+    ScalarFloat m_radius_array;        // Radius of transducer array
+    ScalarFloat m_angular_coverage;    // Angular coverage of transducer array
+    int m_number_transducers;          // Number of transducers in array
+    int m_index_transducer_current;    // Index of current selected transducer
+
 
     Vector3f square_to_polar_bounding_box_surface(const Point2f &point_on_square) const {
         Float y_samp = 2*m_y_max_bound*point_on_square.y() - m_y_max_bound;
@@ -194,6 +238,14 @@ private:
         Float phi_samp = 2*m_phi_max_bound*point_on_square.x() - m_phi_max_bound;
         
         return {r_in_plane*sin(phi_samp),y_samp,r_in_plane*cos(phi_samp)};
+    }
+
+    void rotate_to_transducer_position(){
+        //scalar_t<Float>
+        Float angular_offset = (M_PI - m_angular_coverage)/2;
+        Float angle_pos_transducer = angular_offset + m_index_transducer_current*m_angular_coverage/(m_number_transducers-1);
+
+        update_world_transform(angle_pos_transducer, -1*m_radius_array);
     }
 };
 

@@ -38,6 +38,17 @@ MTS_VARIANT void Endpoint<Float, Spectrum>::set_medium(Medium *medium) {
     m_medium = medium;
 }
 
+MTS_VARIANT void Endpoint<Float, Spectrum>::update_world_transform(const Float &angle, const Vector3f &translation) {
+        //Transform rotate(const Vector<Float, Size - 1> &axis, const Float &angle)
+        //Transform translate(const Vector<Float, Size - 1> &v)
+        // CONCATENATE TRANSFORMS WITH * - operator
+
+    //Transform4f transf = Transform4f();
+    Transform4f transf = Transform4f::rotate(Vector3f(0,1,0),angle)*Transform4f::translate(translation);
+
+    //m_world_transform.get()->update_m_transform(transf);
+}
+
 MTS_VARIANT std::pair<typename Endpoint<Float, Spectrum>::Ray3f, Spectrum>
 Endpoint<Float, Spectrum>::sample_ray(Float /*time*/, Float /*sample1*/,
                                       const Point2f & /*sample2*/,

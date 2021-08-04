@@ -216,6 +216,9 @@ public:
      */
     virtual void set_scene(const Scene *scene);
 
+    /// Set new world transform
+    virtual void update_world_transform(const Float &angle, const Vector3f &translation);
+
     /// Return a string identifier
     std::string id() const override;
 

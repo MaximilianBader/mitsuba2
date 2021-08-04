@@ -56,11 +56,6 @@ public:
 
         if (m_film->size() != ScalarPoint2i(1, 1))
             Throw("This sensor only supports films of size 1x1 Pixels!");
-
-        if (m_film->reconstruction_filter()->radius() >
-            0.5f + math::RayEpsilon<Float>)
-            Log(Warn, "This sensor should only be used with a reconstruction filter"
-               "of radius 0.5 or lower(e.g. default box)");
         
         // Assign bounds of cuboid to sample rays from
         if (props.has_property("r_min_bound"))

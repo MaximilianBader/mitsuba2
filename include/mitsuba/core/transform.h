@@ -513,6 +513,11 @@ public:
     /// Return a human-readable summary of this bitmap
     virtual std::string to_string() const override;
 
+    /// Update m_transform in animated transformation
+    void update_m_transform(const Transform4f &trafo) {
+        m_transform = trafo;
+    }
+
     MTS_DECLARE_CLASS()
 private:
     Transform4f m_transform;
