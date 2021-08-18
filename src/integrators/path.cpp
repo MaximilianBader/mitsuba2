@@ -124,9 +124,14 @@ public:
         for (int depth = 1;; ++depth) {
 
             // ---------------- Intersection with emitters ----------------
-
+            
             if (any_or<true>(neq(emitter, nullptr)))
+            {
                 result[active] += emission_weight * throughput * emitter->eval(si, active);
+                std::cout << "DEBUGGING - pathTracer:\n";
+                std::cout << " Intersection with emitters: emission_weight:" << emission_weight << ", throughput: " << throughput << "emitter->eval(si, active): " << emitter->eval(si, active) << "\n";
+            }
+                //result[active] += emission_weight * throughput * emitter->eval(si, active);
 
             active &= si.is_valid();
 

@@ -195,9 +195,6 @@ Scene<Float, Spectrum>::sample_emitter_direction(const Interaction3f &ref, const
             // Account for the discrete probability of sampling this emitter
             ds.pdf *= emitter_pdf;
             spec *= rcp(emitter_pdf);
-
-            // DEBUGGING:
-            std::cout << "scene.cpp - sample_emitter_direction: randomly selected emitter " << index << "\n";
         }
 
         active &= neq(ds.pdf, 0.f);

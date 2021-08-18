@@ -597,10 +597,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
     for (int depth = 1;; ++depth) {
 
-        // ---------------- Intersection with emitters ----------------
-
-        if (any_or<true>(neq(emitter, nullptr)))
-        {
+        // ---------------- Intersection with emitters (ray directly hits emitter) ----------------
+        if (any_or<true>(neq(emitter, nullptr))) {
             result[active] += emission_weight * throughput * emitter->eval(si, active);
             
             // Add result to output vector
@@ -612,16 +610,12 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             current_covered_distances = covered_distances;
             current_covered_distances.push_back(norm(si.p-emitter->get_p()));
             covered_distances_from_all_interactions.push_back(current_covered_distances);
-
-            // Debugging
-            std::cout << "Direct emitter hit: emission_weight=" << emission_weight << ", throughput=" << throughput << ", emitter->eval(si, active)=" << emitter->eval(si, active) << "\n";
-
         }
                 
         active &= si.is_valid();   
 
         // Push back travelling distance if there is an active lane
-        if (any(active))
+        if (any_or<true>(active))
             covered_distances.push_back(si.t);
 
         // Russian roulette: try to keep path weights equal to one,
@@ -643,7 +637,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
                 break;
             
 
-        // --------------------- Emitter sampling ---------------------
+        // --------------------- Emitter sampling  ---------------------
+        // -- Sample emitters in direction of surface interaction & check for ray hit ---
 
         BSDFContext ctx;
         BSDFPtr bsdf = si.bsdf(ray);
@@ -675,10 +670,6 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             current_covered_distances = covered_distances;
             current_covered_distances.push_back(ds.dist);
             covered_distances_from_all_interactions.push_back(current_covered_distances);
-
-            // Debugging
-            //std::cout << "Direct emitter hit: mis=" << mis << ", throughput=" << throughput << ", bsdf_val=" << bsdf_val << ", emitter_val=" << emitter_val << ", last_interaction_point=" << last_interaction_point << ", current_covered_distances=" << current_covered_distances << "\n";
-
         }
 
         // ----------------------- BSDF sampling ----------------------
@@ -712,15 +703,11 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
                        0.f);
 
             emission_weight = mis_weight(bs.pdf, emitter_pdf);
-
-            // Debugging
-            std::cout << "Direct emitter hit: bsdf.pdf=" << bs.pdf << ", emitter_pdf=" << emitter_pdf << "\n";
         }
 
         si = std::move(si_bsdf);
     }
 
-    //return {result , last_interaction_point, covered_distances, valid_ray};
     return {result_from_all_interactions, last_interaction_point, covered_distances_from_all_interactions, valid_ray};
 }
 

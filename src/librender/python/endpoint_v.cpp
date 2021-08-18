@@ -27,7 +27,5 @@ MTS_PY_EXPORT(Endpoint) {
         .def("medium", py::overload_cast<>(&Endpoint::medium, py::const_), D(Endpoint, medium))
         .def_method(Endpoint, set_shape, "shape"_a)
         .def_method(Endpoint, set_medium, "medium"_a)
-        .def("update_world_transform", &Endpoint::update_world_transform,
-            "angle"_a, "translation"_a)
         .def_method(Endpoint, bbox);
 }

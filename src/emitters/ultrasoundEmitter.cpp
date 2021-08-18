@@ -67,8 +67,7 @@ template <typename Float, typename Spectrum>
 class UltrasoundEmitter final : public Emitter<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Emitter, /* parent class */
-                    m_flags, m_medium, m_world_transform, /* member variables */
-                    update_world_transform /* member functions */
+                    m_flags, m_medium, m_world_transform /* member variables */
                     )
     MTS_IMPORT_TYPES(Scene, Texture)
 
@@ -118,22 +117,9 @@ public:
         else
             Throw("This emitter requires a number of transducers in the array (number_transducers, int)!");
 
+
         // Initialize first transducer
         m_index_transducer_current = 0;
-        rotate_to_transducer_position();
-    }
-
-    uint32_t select_next_transducer(){
-        // Update 
-        if(m_index_transducer_current < m_number_transducers){
-            m_index_transducer_current++;  
-        } else {
-            m_index_transducer_current = 0;
-        }
-
-        rotate_to_transducer_position();
-        
-        return m_index_transducer_current;
     }
 
     std::pair<Ray3f, Spectrum> sample_ray(Float time, Float wavelength_sample,
@@ -238,14 +224,6 @@ private:
         Float phi_samp = 2*m_phi_max_bound*point_on_square.x() - m_phi_max_bound;
         
         return {r_in_plane*sin(phi_samp),y_samp,r_in_plane*cos(phi_samp)};
-    }
-
-    void rotate_to_transducer_position(){
-        //scalar_t<Float>
-        Float angular_offset = (M_PI - m_angular_coverage)/2;
-        Float angle_pos_transducer = angular_offset + m_index_transducer_current*m_angular_coverage/(m_number_transducers-1);
-
-        update_world_transform(angle_pos_transducer, -1*m_radius_array);
     }
 };
 
