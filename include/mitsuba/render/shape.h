@@ -373,6 +373,9 @@ public:
     /// Return the world transform
     ScalarTransform4f to_world() const { return m_to_world; }
 
+    /// Return type
+    std::string type() const { return m_type; }
+
     /**
      * \brief Returns the number of sub-primitives that make up this shape
      *
@@ -502,6 +505,7 @@ protected:
     void set_children();
     std::string get_children_string() const;
 protected:
+    std::string m_type;
     ref<BSDF> m_bsdf;
     ref<Emitter> m_emitter;
     ref<Sensor> m_sensor;
@@ -538,6 +542,7 @@ ENOKI_CALL_SUPPORT_TEMPLATE_BEGIN(mitsuba::Shape)
     ENOKI_CALL_SUPPORT_GETTER_TYPE(exterior_medium, m_exterior_medium,
                                    const typename Class::Medium *)
     ENOKI_CALL_SUPPORT_GETTER(to_world, m_to_world)
+    ENOKI_CALL_SUPPORT_GETTER(type, m_type)
     auto is_emitter() const { return neq(emitter(), nullptr); }
     auto is_sensor() const { return neq(sensor(), nullptr); }
     auto is_medium_transition() const { return neq(interior_medium(), nullptr) ||

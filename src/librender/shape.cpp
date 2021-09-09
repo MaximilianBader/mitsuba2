@@ -36,6 +36,7 @@ NAMESPACE_BEGIN(mitsuba)
 MTS_VARIANT Shape<Float, Spectrum>::Shape(const Properties &props) : m_id(props.id()) {
     m_to_world = props.transform("to_world", ScalarTransform4f());
     m_to_object = m_to_world.inverse();
+    m_type = "shape";
 
     for (auto &[name, obj] : props.objects(false)) {
         Emitter *emitter = dynamic_cast<Emitter *>(obj.get());

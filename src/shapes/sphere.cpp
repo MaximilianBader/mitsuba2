@@ -87,7 +87,7 @@ This makes it a good default choice for lighting new scenes.
 template <typename Float, typename Spectrum>
 class Sphere final : public Shape<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children,
+    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children, m_type,
                     get_children_string, parameters_grad_enabled)
     MTS_IMPORT_TYPES()
 
@@ -100,6 +100,8 @@ public:
         // Update the to_world transform if radius and center are also provided
         m_to_world = m_to_world * ScalarTransform4f::translate(props.point3f("center", 0.f));
         m_to_world = m_to_world * ScalarTransform4f::scale(props.float_("radius", 1.f));
+
+        m_type = "sphere";
 
         update();
         set_children();

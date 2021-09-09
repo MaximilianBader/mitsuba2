@@ -66,7 +66,7 @@ The following XML snippet instantiates an example of a textured disk shape:
 template <typename Float, typename Spectrum>
 class Disk final : public Shape<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children,
+    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children, m_type,
                     get_children_string, parameters_grad_enabled)
     MTS_IMPORT_TYPES()
 
@@ -75,6 +75,8 @@ public:
     Disk(const Properties &props) : Base(props) {
         if (props.bool_("flip_normals", false))
             m_to_world = m_to_world * ScalarTransform4f::scale(ScalarVector3f(1.f, 1.f, -1.f));
+
+        m_type = "rectangle";
 
         update();
         set_children();

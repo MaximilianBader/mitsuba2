@@ -73,7 +73,7 @@ A simple example for instantiating a cylinder, whose interior is visible:
 template <typename Float, typename Spectrum>
 class Cylinder final : public Shape<Float, Spectrum> {
 public:
-    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children,
+    MTS_IMPORT_BASE(Shape, m_to_world, m_to_object, set_children, m_type,
                     get_children_string, parameters_grad_enabled)
     MTS_IMPORT_TYPES()
 
@@ -92,6 +92,8 @@ public:
         m_to_world = m_to_world * ScalarTransform4f::translate(p0) *
                                   ScalarTransform4f::to_frame(ScalarFrame3f(p1 - p0)) *
                                   ScalarTransform4f::scale(ScalarVector3f(radius, radius, 1.f));
+
+        m_type = "cylinder";
 
         update();
         set_children();
