@@ -537,10 +537,9 @@ PathLengthOriginIntegrator<Float, Spectrum>::render_sample(const Scene *scene,
 
     const Medium *medium = sensor->medium();
     std::vector<Spectrum> result_spectra;
-    Point3f result_last_interaction_point;
-    std::vector<std::vector<Float>> result_covered_distances;
+    std::vector<std::vector<Point3f>> result_interaction_points;
     Mask result_mask;
-    std::tie(result_spectra, result_last_interaction_point, result_covered_distances, result_mask) = sample_with_length_and_origin(scene, sampler, ray, medium, active);
+    std::tie(result_spectra, result_interaction_points, result_mask) = sample_with_length_and_origin(scene, sampler, ray, medium, active);
     
     for(int i=0;i<result_spectra.size();i++)
         result_spectra[i] += ray_weight * result_spectra[i];
@@ -562,7 +561,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::render_sample(const Scene *scene,
     sampler->advance();
 }
 
-MTS_VARIANT std::tuple<std::vector<Spectrum>, typename PathLengthOriginIntegrator<Float, Spectrum>::Point3f, std::vector<std::vector<Float>>, typename PathLengthOriginIntegrator<Float, Spectrum>::Mask>
+MTS_VARIANT std::tuple<std::vector<Spectrum>, std::vector<std::vector<typename PathLengthOriginIntegrator<Float, Spectrum>::Point3f>>, typename PathLengthOriginIntegrator<Float, Spectrum>::Mask>
 PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const Scene *scene,
                                                                            Sampler *sampler,
                                                                            const RayDifferential3f &ray_,
@@ -579,19 +578,32 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
     // MIS weight for intersected emitters (set by prev. iteration)
     Float emission_weight(1.f);
 
-    Spectrum throughput(1.f), result(0.f), current_result(0.f);
+    Spectrum throughput(1.f), result(0.f);
 
     // vector to store distances between all surface interactions
-    std::vector<Float> covered_distances, current_covered_distances;
+    std::vector<Point3f> ray_interaction_points;
 
     // return vectors to return all results from all possible emitters
     std::vector<Spectrum> result_from_all_interactions;
-    std::vector<std::vector<Float>> covered_distances_from_all_interactions;
+    std::vector<std::vector<Point3f>> ray_interaction_points_list;
+
+    // Track weights for each intersection
+    std::vector<Spectrum> throughput_vector;
+    std::vector<std::vector<Spectrum>> throughput_vector_from_all_interactions_list;
+    std::vector<Float> emission_weight_vector;
+    std::vector<std::vector<Float>> emission_weight_vector_from_all_interactions_list;
+    std::vector<Spectrum> emitter_eval_from_all_emissions;
+    std::vector<std::vector<Spectrum>> result_vector_from_all_interactions_list;
+
+    // store ray origin in vector
+    ray_interaction_points.push_back(ray.o);
+    throughput_vector.push_back(throughput);
+    emission_weight_vector.push_back(emission_weight);
 
     // ---------------------- First intersection ----------------------
 
     SurfaceInteraction3f si = scene->ray_intersect(ray, active);
-    Point3f last_interaction_point = si.p;
+    ray_interaction_points.push_back(si.p);
     Mask valid_ray = si.is_valid();
     EmitterPtr emitter = si.emitter(scene);
 
@@ -602,21 +614,30 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             result[active] += emission_weight * throughput * emitter->eval(si, active);
             
             // Add result to output vector
-            current_result = result;
-            masked(current_result,active) += emission_weight * throughput * emitter->eval(si, active);
-            result_from_all_interactions.push_back(current_result);
+            result_from_all_interactions.push_back(result);
             
-            // Add covered distance to output vector
-            current_covered_distances = covered_distances;
-            current_covered_distances.push_back(norm(si.p-emitter->get_p()));
-            covered_distances_from_all_interactions.push_back(current_covered_distances);
+            // Add interaction points to list
+            ray_interaction_points_list.push_back(ray_interaction_points);
+            
+            // DEBUGGING:
+            std::vector<Spectrum> current_result_vector = result_from_all_interactions;
+            //current_result_vector.push_back(result);
+            result_vector_from_all_interactions_list.push_back(current_result_vector);
+            
+            //
+            throughput_vector_from_all_interactions_list.push_back(throughput_vector);
+            emitter_eval_from_all_emissions.push_back(emitter->eval(si, active));
+            /*std::cout << "Direct intersection with emitter\n";
+            std::cout << "Depth: " << depth << "\n";
+            std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
+            std::cout << "Last interaction point: " << ray_interaction_points[1] << "\n";
+            std::cout << "Emitter position: " << emitter->get_p() << "\n";
+            std::cout << "Distance list: " << current_covered_distances << "\n";
+            std::cout << "All interaction points: " << ray_interaction_points << "\n";
+            std::cout << "Weight: " << result << "\n";*/
         }
                 
         active &= si.is_valid();   
-
-        // Push back travelling distance if there is an active lane
-        if (any_or<true>(active))
-            covered_distances.push_back(si.t);
 
         // Russian roulette: try to keep path weights equal to one,
         // while accounting for the solid angle compression at refractive
@@ -662,14 +683,27 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
             // Add covered distance from emitter to current position
             // Add result to output vector
-            current_result = result;
-            masked(current_result,active) += mis * throughput * bsdf_val * emitter_val;
-            result_from_all_interactions.push_back(current_result);
+            result_from_all_interactions.push_back(result);
             
-            // Add covered distance to output vector
-            current_covered_distances = covered_distances;
-            current_covered_distances.push_back(ds.dist);
-            covered_distances_from_all_interactions.push_back(current_covered_distances);
+            // Add vector of interaction points to output vector
+            std::vector<Point3f> ray_interaction_points_complete = ray_interaction_points;
+            ray_interaction_points_complete.push_back(ds.p);
+            ray_interaction_points_list.push_back(ray_interaction_points_complete);
+
+            // DEBUGGING:
+            std::vector<Spectrum> current_result_vector = result_from_all_interactions;
+            //current_result_vector.push_back(result);
+            result_vector_from_all_interactions_list.push_back(current_result_vector);
+            throughput_vector_from_all_interactions_list.push_back(throughput_vector);
+            emitter_eval_from_all_emissions.push_back(emitter_val);
+            /*std::cout << "Emitter sampling successful\n";
+            std::cout << "Depth: " << (depth+1) << "\n";
+            std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
+            std::cout << "Last interaction point: " << ray_interaction_points_complete[1] << "\n";
+            std::cout << "Emitter position: " << ds.p << "\n";
+            std::cout << "Distance list: " << current_covered_distances << "\n";
+            std::cout << "All interaction points: " << ray_interaction_points_list.back() << "\n";
+            std::cout << "Weight: " << result << "\n";*/
         }
 
         // ----------------------- BSDF sampling ----------------------
@@ -703,12 +737,18 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
                        0.f);
 
             emission_weight = mis_weight(bs.pdf, emitter_pdf);
+
+            // DEBUGGING:
+            /*std::cout << "Same direction already sampled by emitter sampling:\n";
+            std::cout << "emission_weight: " << emission_weight << "\n";*/
         }
 
         si = std::move(si_bsdf);
+        ray_interaction_points.push_back(si.p);
+        throughput_vector.push_back(throughput);
     }
 
-    return {result_from_all_interactions, last_interaction_point, covered_distances_from_all_interactions, valid_ray};
+    return {result_from_all_interactions, ray_interaction_points_list, valid_ray};
 }
 
 // -----------------------------------------------------------------------------

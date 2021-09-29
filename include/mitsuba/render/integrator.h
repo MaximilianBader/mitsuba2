@@ -268,15 +268,14 @@ public:
      *
      * \return
      *    A tuple containing a 
-     *      - spectrum 'result' weight/strength associated with ray
-     *      - Point3f 'last_interaction_point'
-     *      - std::vector<Float> 'covered_distances'
+     *      - spectrum 'result' weight/strength associated with rays
+     *      - std::vector<std::vector<Point3f>> 'ray_interaction_points_list' list of interaction points for all rays 
      *      - mask 'valid_ray' specifying whether a surface or medium interaction was sampled.
      *        False mask entries indicate that the ray "escaped" the scene, in which case the 
      *        the returned spectrum contains the contribution of environment maps, if present.
      *        The mask can be used to estimate a suitable alpha channel of a rendered image.
      */
-    std::tuple<std::vector<Spectrum>, Point3f, std::vector<std::vector<Float>>, Mask>sample_with_length_and_origin(const Scene *scene,
+    std::tuple<std::vector<Spectrum>, std::vector<std::vector<Point3f>>, Mask>sample_with_length_and_origin(const Scene *scene,
                                                                                          Sampler * sampler,
                                                                                          const RayDifferential3f &ray_,
                                                                                          const Medium *medium = nullptr,
