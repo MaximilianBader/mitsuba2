@@ -27,6 +27,14 @@ def visualize_scene(scene,image_path):
     ax.set_zlim(-0.06,0)
     image_file_name = image_path / 'scene_visualization.jpeg'
     plt.savefig(image_file_name.resolve(),dpi=600)
+    pickle.dump(fig, open((image_path / 'scene_visualization.fig.pickle').resolve(), 'wb'))
+
+    # Loading of pickle result
+    # import pickle
+    # import matplotlib.pyplot as plt
+    # figx = pickle.load(open('E:/Max/02-projects/202105-Ultrasound_mb/02-simulations_ray_tracing/20210909-US_modeling_ray_tracing_transmission_membrane/scene_ray_visualization.fig.pickle','rb'))
+    # figx.show()
+    # data = figx.axes[0].lines[0].get_data()
 
 # --- VISUALIZING SCENE AND SAMPLED RAYS ---
 def visualize_scene_rays(scene,weights_all_rays,interaction_points_all_rays,image_path):
