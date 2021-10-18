@@ -613,37 +613,40 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
     Mask valid_ray = si.is_valid();
     EmitterPtr emitter = si.emitter(scene);
 
+    // DEBUGGING:
+    /*std::cout << "New ray:\n";
+    if(none(valid_ray)) {
+        std::cout << "ray invalid - ray.o: " << ray.o << "\n";
+    }*/
+
     for (int depth = 1;; ++depth) {
 
         // ---------------- Intersection with emitters (ray directly hits emitter) ----------------
         if (any_or<true>(neq(emitter, nullptr))) {
             weight_single_ray[active] = emission_weight * throughput * emitter->eval(si, active);
             
-            // Only add the ray to the list, if the weight changed compared to the previously added ray
-            if (weight_single_ray != Spectrum(0.f)){    
-                // Add result to output vector
-                ray_weights.push_back(weight_single_ray);
+            // Add result to output vector
+            ray_weights.push_back(weight_single_ray);
             
-                // Add interaction points to list
-                ray_interaction_points_list.push_back(ray_interaction_points);
+            // Add interaction points to list
+            ray_interaction_points_list.push_back(ray_interaction_points);
 
-                // DEBUGGING
-                /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
-                emitter_eval_from_all_emissions.push_back(emitter->eval(si, active));
-                std::cout << "Direct intersection with emitter\n";
-                std::cout << "Depth: " << depth+1 << "\n";
-                std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
-                std::cout << "Last interaction point: " << ray_interaction_points[1] << "\n";
-                std::cout << "Emitter position: " << emitter->get_p() << "\n";
-                std::cout << "All interaction points: " << ray_interaction_points << "\n";
-                std::cout << "Weight: " << weight_single_ray << "\n";
-                std::cout << "Ray origins: " << origins_sampled_rays << "\n";
-                std::cout << "Ray directions: " << directions_sampled_rays << "\n";*/
+            // DEBUGGING
+            /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
+            emitter_eval_from_all_emissions.push_back(emitter->eval(si, active));
+            std::cout << "Direct intersection with emitter\n";
+            std::cout << "Depth: " << depth+1 << "\n";
+            std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
+            std::cout << "Last interaction point: " << ray_interaction_points[1] << "\n";
+            std::cout << "Emitter position: " << emitter->get_p() << "\n";
+            std::cout << "All interaction points: " << ray_interaction_points << "\n";
+            std::cout << "Weight: " << weight_single_ray << "\n";
+            std::cout << "Ray origins: " << origins_sampled_rays << "\n";
+            std::cout << "Ray directions: " << directions_sampled_rays << "\n";*/
 
-                // Clear weight of ray
-                weight_single_ray = Spectrum(0.f);
-            
-            }
+            // Clear weight of ray
+            weight_single_ray = Spectrum(0.f);
+
         }
                 
         active &= si.is_valid();   
@@ -662,9 +665,17 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         // if there are no more active lanes. Only do this latter check
         // in GPU mode when the number of requested bounces is infinite
         // since it causes a costly synchronization.
-        if ((uint32_t) depth >= (uint32_t) m_max_depth ||
-           ((!is_cuda_array_v<Float> || m_max_depth < 0) && none(active)))
-                break;
+        if ((uint32_t) depth >= (uint32_t) m_max_depth){
+            // Add result to output vector
+            ray_weights.push_back(Spectrum(0.f));
+            
+            // Add vector of interaction points to output vector
+            ray_interaction_points_list.push_back(ray_interaction_points);
+            
+            break;
+        }
+        else if ((!is_cuda_array_v<Float> || m_max_depth < 0) && none(active))
+            break;
 
         // --------------------- Emitter sampling  ---------------------
         // -- Sample emitters in direction of surface interaction & check for ray hit ---
@@ -690,37 +701,33 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             weight_single_ray[active] = mis * throughput * bsdf_val * emitter_val;
             
 
-            // Only add the ray to the list, if the weight changed compared to the previously added ray
-            if (weight_single_ray != Spectrum(0.f)){ 
-                // Add result to output vector
-                ray_weights.push_back(weight_single_ray);
+            // Add result to output vector
+            ray_weights.push_back(weight_single_ray);
             
-                // Add vector of interaction points to output vector
-                std::vector<Point3f> ray_interaction_points_complete = ray_interaction_points;
-                ray_interaction_points_complete.push_back(ds.p);
-                ray_interaction_points_list.push_back(ray_interaction_points_complete);
+            // Add vector of interaction points to output vector
+            std::vector<Point3f> ray_interaction_points_complete = ray_interaction_points;
+            ray_interaction_points_complete.push_back(ds.p);
+            ray_interaction_points_list.push_back(ray_interaction_points_complete);
 
-                // DEBUGGING:
-                /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
-                emitter_eval_from_all_emissions.push_back(emitter_val);
-                std::cout << "Emitter sampling successful\n";
-                std::cout << "Depth: " << (depth+1) << "\n";
-                std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
-                std::cout << "Last interaction point: " << ray_interaction_points_complete[1] << "\n";
-                std::cout << "Emitter position: " << ds.p << "\n";
-                std::cout << "All interaction points: " << ray_interaction_points_list.back() << "\n";
-                std::cout << "Weight: " << weight_single_ray << "\n";
-                std::cout << "Ray origins: " << origins_sampled_rays << ", " << si.p << "\n";
-                std::cout << "Ray directions: " << directions_sampled_rays << ", " << ds.d <<"\n";
-                std::cout << "mis: " << mis <<"\n"; 
-                std::cout << "throughput: " << throughput <<"\n";
-                std::cout << "bsdf_val: " << bsdf_val <<"\n";
-                std::cout << "emitter_val: " << emitter_val <<"\n";*/
+            // DEBUGGING:
+            /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
+            emitter_eval_from_all_emissions.push_back(emitter_val);
+            std::cout << "Emitter sampling successful\n";
+            std::cout << "Depth: " << (depth+1) << "\n";
+            std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
+            std::cout << "Last interaction point: " << ray_interaction_points_complete[1] << "\n";
+            std::cout << "Emitter position: " << ds.p << "\n";
+            std::cout << "All interaction points: " << ray_interaction_points_list.back() << "\n";
+            std::cout << "Weight: " << weight_single_ray << "\n";
+            std::cout << "Ray origins: " << origins_sampled_rays << ", " << si.p << "\n";
+            std::cout << "Ray directions: " << directions_sampled_rays << ", " << ds.d <<"\n";
+            std::cout << "mis: " << mis <<"\n"; 
+            std::cout << "throughput: " << throughput <<"\n";
+            std::cout << "bsdf_val: " << bsdf_val <<"\n";
+            std::cout << "emitter_val: " << emitter_val <<"\n";*/
 
-                // Clear weight of ray
-                weight_single_ray = Spectrum(0.f);
-
-            }
+            // Clear weight of ray
+            weight_single_ray = Spectrum(0.f);
             
         }
 
@@ -730,6 +737,12 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         auto [bs, bsdf_val] = bsdf->sample(ctx, si, sampler->next_1d(active),
                                            sampler->next_2d(active), active);
         bsdf_val = si.to_world_mueller(bsdf_val, -bs.wo, si.wi);
+
+        // DEBUGGING:
+        /*if (depth == 1){
+           auto cos_theta_i =  Frame3f::cos_theta(si.wi);
+           std::cout << "First intersection: cos_theta_i: " << cos_theta_i << "\n";
+        }*/
 
         throughput = throughput * bsdf_val;
         active &= any(neq(depolarize(throughput), 0.f));
@@ -771,6 +784,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         // DEBUGGING:
         //throughput_vector.push_back(throughput);
     }
+
+    
 
     return {ray_weights, ray_interaction_points_list, valid_ray};
 }
