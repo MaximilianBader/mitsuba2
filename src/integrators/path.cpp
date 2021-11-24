@@ -128,10 +128,7 @@ public:
             if (any_or<true>(neq(emitter, nullptr)))
             {
                 result[active] += emission_weight * throughput * emitter->eval(si, active);
-                std::cout << "DEBUGGING - pathTracer:\n";
-                std::cout << " Intersection with emitters: emission_weight:" << emission_weight << ", throughput: " << throughput << "emitter->eval(si, active): " << emitter->eval(si, active) << "\n";
             }
-                //result[active] += emission_weight * throughput * emitter->eval(si, active);
 
             active &= si.is_valid();
 
@@ -174,6 +171,7 @@ public:
 
                 Float mis = select(ds.delta, 1.f, mis_weight(ds.pdf, bsdf_pdf));
                 result[active_e] += mis * throughput * bsdf_val * emitter_val;
+
             }
 
             // ----------------------- BSDF sampling ----------------------

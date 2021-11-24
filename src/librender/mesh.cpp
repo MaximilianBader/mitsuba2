@@ -29,6 +29,8 @@ MTS_VARIANT Mesh<Float, Spectrum>::Mesh(const Properties &props) : Base(props) {
        appearance. Default: ``false`` */
     if (props.bool_("face_normals", false))
         m_disable_vertex_normals = true;
+    /// Are the sphere normals pointing inwards? default: no
+    m_flip_normals = props.bool_("flip_normals", false);
 }
 
 MTS_VARIANT
@@ -36,6 +38,9 @@ Mesh<Float, Spectrum>::Mesh(const std::string &name, ScalarSize vertex_count,
                             ScalarSize face_count, const Properties &props,
                             bool has_vertex_normals, bool has_vertex_texcoords)
     : Base(props), m_name(name), m_vertex_count(vertex_count), m_face_count(face_count) {
+
+    /// Are the sphere normals pointing inwards? default: no
+    m_flip_normals = props.bool_("flip_normals", false);
 
     m_faces_buf = zero<DynamicBuffer<UInt32>>(m_face_count * 3);
     m_vertex_positions_buf = zero<FloatStorage>(m_vertex_count * 3);
@@ -393,6 +398,9 @@ Mesh<Float, Spectrum>::sample_position(Float time, const Point2f &sample_, Mask 
         ps.n = normalize(cross(e0, e1));
     }
 
+    if (m_flip_normals)
+        ps.n *= -1.f;
+
     return ps;
 }
 
@@ -485,6 +493,8 @@ Mesh<Float, Spectrum>::compute_surface_interaction(const Ray3f &ray,
 
     // Face normal
     si.n = normalize(cross(dp0, dp1));
+    if (m_flip_normals)
+        si.n *= -1.f;
 
     // Texture coordinates (if available)
     si.uv = Point2f(b1, b2);
@@ -516,6 +526,12 @@ Mesh<Float, Spectrum>::compute_surface_interaction(const Ray3f &ray,
                  n1 = vertex_normal(fi[1], active),
                  n2 = vertex_normal(fi[2], active);
 
+        if (m_flip_normals) {
+            n0 *= -1.f;
+            n1 *= -1.f;
+            n2 *= -1.f;
+        }
+
         si.sh_frame.n = normalize(n0 * b0 + n1 * b1 + n2 * b2);
 
         si.dn_du = si.dn_dv = zero<Vector3f>();
@@ -536,6 +552,7 @@ Mesh<Float, Spectrum>::compute_surface_interaction(const Ray3f &ray,
 
             si.dn_du = fnmadd(N, dot(N, si.dn_du), si.dn_du);
             si.dn_dv = fnmadd(N, dot(N, si.dn_dv), si.dn_dv);
+
         }
     } else {
         si.sh_frame.n = si.n;

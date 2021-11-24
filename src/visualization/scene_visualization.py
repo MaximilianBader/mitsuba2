@@ -96,7 +96,7 @@ def visualize_scene_rays(scene,rays,image_path,axis_limits = [[-1,1],[-1,1],[-1,
     ray_color = 'black'
     for index_ray in np.arange(start=0,stop=len(rays)):
         ax.scatter3D(rays[index_ray].o.x,rays[index_ray].o.y,rays[index_ray].o.z,c=ray_color)
-        #ax.plot([rays[index_ray].o.x, rays[index_ray].o.x+rays[index_ray].d.x*0.01],[rays[index_ray].o.y, rays[index_ray].o.y+rays[index_ray].d.y*0.01],[rays[index_ray].o.z, rays[index_ray].o.z+rays[index_ray].d.z*0.01],color=ray_color)     
+        ax.plot([rays[index_ray].o.x, rays[index_ray].o.x+rays[index_ray].d.x*0.01],[rays[index_ray].o.y, rays[index_ray].o.y+rays[index_ray].d.y*0.01],[rays[index_ray].o.z, rays[index_ray].o.z+rays[index_ray].d.z*0.01],color=ray_color)     
     
     # add axis labels & save the figure
     ax.set_xlabel('X')

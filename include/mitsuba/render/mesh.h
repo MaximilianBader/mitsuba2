@@ -349,6 +349,8 @@ protected:
 
     std::unordered_map<std::string, MeshAttribute> m_mesh_attributes;
 
+    bool m_flip_normals;
+
 #if defined(MTS_ENABLE_OPTIX)
     void* m_vertex_buffer_ptr;
 #endif

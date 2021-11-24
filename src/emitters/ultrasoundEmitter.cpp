@@ -86,7 +86,7 @@ public:
         }
 
         // Assign bounds of cuboid to sample rays from
-        if (props.has_property("r_min_bound"))
+        /*if (props.has_property("r_min_bound"))
             m_r_min_bound = props.float_("r_min_bound");
         else
             Throw("This emitter requires an axial bound (r_min_bound, in m) for the bounding box to sample the ray direction!");
@@ -115,7 +115,7 @@ public:
         if (props.has_property("number_transducers"))
             m_number_transducers = props.int_("number_transducers");
         else
-            Throw("This emitter requires a number of transducers in the array (number_transducers, int)!");
+            Throw("This emitter requires a number of transducers in the array (number_transducers, int)!");*/
 
 
         // Initialize first transducer
@@ -124,15 +124,16 @@ public:
 
     std::pair<Ray3f, Spectrum> sample_ray(Float time, Float wavelength_sample,
                                           const Point2f &spatial_sample,
-                                          const Point2f & /*dir_sample*/,
+                                          const Point2f & dir_sample,
                                           Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::EndpointSampleRay, active);
 
         // 1. Sample directional component
         const Transform4f &trafo = m_world_transform->eval(time, active);
-        //Vector3f local_dir = warp::square_to_uniform_cone(spatial_sample, (Float)m_cos_cutoff_angle);
-        Vector3f local_dir = square_to_polar_bounding_box_surface(spatial_sample);
-        //Float pdf_dir = warp::square_to_uniform_cone_pdf(local_dir, (Float)m_cos_cutoff_angle);
+        Vector3f local_dir = warp::square_to_cosine_hemisphere(dir_sample);
+        local_dir[2] *= -1;
+        //Vector3f local_dir = square_to_polar_bounding_box_surface(dir_sample);
+        Float pdf_dir = warp::square_to_cosine_hemisphere_pdf(local_dir);
 
         // 2. Sample spectrum
         auto [wavelengths, spec_weight] = m_intensity->sample_spectrum(
@@ -142,7 +143,7 @@ public:
         //UnpolarizedSpectrum falloff_spec = falloff_curve(local_dir, wavelengths, active);
 
         return { Ray3f(trafo.translation(), trafo * local_dir, time, wavelengths),
-                unpolarized<Spectrum>(spec_weight) };
+                 unpolarized<Spectrum>(spec_weight)};
                 //unpolarized<Spectrum>(falloff_spec / pdf_dir) };
     }
 

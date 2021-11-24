@@ -44,12 +44,12 @@ simply instantiate the desired sensor shape and specify an
     </shape>
 */
 
-MTS_VARIANT class IrradianceMeterDirectional final : public Sensor<Float, Spectrum> {
+MTS_VARIANT class IrradianceMeterUS final : public Sensor<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Sensor, m_film, m_world_transform, m_shape)
-    MTS_IMPORT_TYPES(Shape)
+    MTS_IMPORT_TYPES(Shape, Texture)
 
-    IrradianceMeterDirectional(const Properties &props) : Base(props) {
+    IrradianceMeterUS(const Properties &props) : Base(props) {
         if (props.has_property("to_world"))
             Throw("Found a 'to_world' transformation -- this is not allowed. "
                   "The irradiance meter inherits this transformation from its parent "
@@ -59,20 +59,30 @@ public:
             Throw("This sensor only supports films of size 1x1 Pixels!");
         
         // Assign bounds of cuboid to sample rays from
-        if (props.has_property("r_min_bound"))
-            m_r_min_bound = props.float_("r_min_bound");
+        if (props.has_property("r_focus_elevational"))
+            m_r_focus_elevational = props.float_("r_focus_elevational");
         else
-            Throw("This sensor requires an axial bound (r_min_bound, in m) for the bounding box to sample the ray direction!");
+            Throw("This sensor requires the radial distance to the focal point in elevation (r_focus_elevational, in m)!");
+        
+        if (props.has_property("r_focus_in_plane"))
+            m_r_focus_in_plane = props.float_("r_focus_in_plane");
+        else
+            Throw("This sensor requires the radial distance to the focal point in elevation (r_focus_in_plane, in m)!");
+        
+        if (props.has_property("r_max_bound_SPMR"))
+            m_r_max_bound_SPMR = props.float_("r_max_bound_SPMR");
+        else
+            Throw("This sensor requires the radial distance corresponding to the largest azimuthal angle of the SPMR -3dB line (r_max_bound_SPMR, in m)!");
        
-        if (props.has_property("phi_max_bound")) {
-            m_phi_max_bound = deg_to_rad(props.float_("phi_max_bound"));
+        if (props.has_property("phi_max_bound_SPMR")) {
+            m_phi_max_bound_SPMR = deg_to_rad(props.float_("phi_max_bound_SPMR"));
         } else
-            Throw("This sensor requires a lateral bound (phi_max_bound, in degree) for the bounding box to sample the ray direction!");
+            Throw("This sensor requires the largest in-plane angle of the SPMR -3dB line (phi_max_bound_SPMR, in degree)!");
 
-        if (props.has_property("y_max_bound"))
-            m_y_max_bound = props.float_("y_max_bound");
+        if (props.has_property("y_max_bound_SPMR"))
+            m_y_max_bound_SPMR = props.float_("y_max_bound_SPMR");
         else
-            Throw("This sensor requires an out-of-plane elevation bound (y_max_bound, in m) for the bounding box to sample the ray direction!");
+            Throw("This sensor requires an out-of-plane elevation bound of the -3dB line at the smallest(y_max_bound_SPMR, in m) for the bounding box to sample the ray direction!");
     }
 
     std::pair<RayDifferential3f, Spectrum>
@@ -87,16 +97,17 @@ public:
         PositionSample3f ps = m_shape->sample_position(time, sample2, active);
 
         // 2. Sample directional component
-        //Vector3f dir_ray = warp::square_to_cosine_hemisphere(sample3);
-        Vector3f dir_ray = sample_dir_from_SIR(sample3, ps);
-        //Vector3f dir_ray = square_to_polar_bounding_box_surface(sample3);
-
+        //Vector3f dir_ray = sample_dir_from_SIR(sample3, ps);
+        Vector3f dir_ray = warp::square_to_cosine_hemisphere(sample3);
+        
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
 
+        // TODO: Generalize scaling of weight for different transducer shapes
+
         return std::make_pair(
             RayDifferential3f(ps.p, Frame3f(ps.n).to_world(dir_ray), time, wavelengths),
-            unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat>
+            unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat> * m_r_focus_elevational       // pi scaling: cos-weighted hemisphere direction, radius scaling: area element of cylindrical transducer shape
         );
     }
 
@@ -118,12 +129,14 @@ public:
 
     std::string to_string() const override {
         std::ostringstream oss;
-        oss << "IrradianceMeterDirectional[" << std::endl
+        oss << "IrradianceMeterUS[" << std::endl
             << "  shape = " << m_shape << "," << std::endl
             << "  film = " << m_film << "," << std::endl
-            << "  r_box_bound = " << m_r_min_bound << "," << std::endl
-            << "  phi_box_bound = " << m_phi_max_bound << "," << std::endl
-            << "  y_box_bound = " << m_y_max_bound << "," << std::endl
+            << "  m_r_focus_elevational = " << m_r_focus_elevational << "m," << std::endl
+            << "  m_r_focus_in_plane = " << m_r_focus_in_plane << "m," << std::endl
+            << "  m_r_max_bound_SPMR = " << m_r_max_bound_SPMR << "m," << std::endl
+            << "  m_phi_max_bound_SPMR = " << rad_to_deg(m_phi_max_bound_SPMR) << "deg," << std::endl
+            << "  m_y_max_bound_SPMR = " << m_y_max_bound_SPMR << "m" << std::endl
             << "]";
         return oss.str();
     }
@@ -131,22 +144,12 @@ public:
     MTS_DECLARE_CLASS()
 
 protected:
-    ScalarFloat m_r_min_bound;         // Bound of Fov in radial-dimension (axial) -> lateral bound for rays to sample
-    ScalarFloat m_phi_max_bound;       // Bound of Fov in azimuthal-dimension (lateral, radians) -> axial bound for rays to sample
-    ScalarFloat m_y_max_bound;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> elevational bound for rays_to_sample
-
-    /*Vector3f sample_dir_from_FoV(const Point1f &sample1, const Point2f &sample3, PositionSample3f ps) const {
-        // Sample elevation & in-plane angle
-        Float x_samp = 2*0.02;
-        Float y_samp = 2*m_y_max_bound*sample3.y() - m_y_max_bound;
-        Float phi_samp = 2*m_phi_max_bound*sample3.x() - m_phi_max_bound;
-        
-        // Compute the direction of the ray & normalize
-        Vector3f dir_ray = Vector3f(m_r_min_bound*sin(phi_samp),y_samp-ps.p.y(),m_r_min_bound*cos(phi_samp));
-        dir_ray /= norm(dir_ray);
-
-        return dir_ray;
-    }*/
+    ScalarFloat m_r_focus_elevational;      // Radial distance to focus point for elevational focusing
+    ScalarFloat m_r_focus_in_plane;         // Radial distance to focus point for in-plane arrangement
+    ScalarFloat m_r_max_bound_SPMR;         // Radial distance at which m_phi_max_bound_SPMR is applicable
+    ScalarFloat m_phi_max_bound_SPMR;       // Bound of SPMR energy (-3dB line) in azimuthal-dimension (lateral, radians) -> std of in-plane angle of rays
+    ScalarFloat m_y_max_bound_SPMR;         // Bound of transducer sensitivity in y-dimension (out-of-plane) -> std of out-of-plane direction of rays
+    ref<Texture> m_radiance;
 
     Vector3f sample_dir_from_SIR(const Point2f &sample3, PositionSample3f ps) const {
         // Sample elevation & in-plane angle
@@ -154,27 +157,19 @@ protected:
         //Float phi_samp = 2*m_phi_max_bound*sample3.x() - m_phi_max_bound;
         
         // Sample elevation & in-plane angle from Normal distribution (mapped with Box-Muller transform)
-        Float y_samp = m_y_max_bound*sqrt(-2*log(sample3.x()))*cos(2*math::Pi<Float>*sample3.y());
-        Float phi_samp = m_phi_max_bound*sqrt(-2*log(sample3.x()))*sin(2*math::Pi<Float>*sample3.y());
+        Float y_samp = m_y_max_bound_SPMR*sqrt(-2.f*log(sample3.x()))*cos(2.f*math::Pi<Float>*sample3.y());
+        Float phi_samp = m_phi_max_bound_SPMR*sqrt(-2.f*log(sample3.x()))*sin(2.f*math::Pi<Float>*sample3.y());
 
         // Compute the direction of the ray & normalize
-        Vector3f dir_ray = Vector3f(m_r_min_bound*sin(phi_samp),y_samp-ps.p.y(),m_r_min_bound*cos(phi_samp));
+        Vector3f dir_ray = Vector3f(m_r_max_bound_SPMR*sin(phi_samp),y_samp-ps.p.y(),m_r_max_bound_SPMR*cos(phi_samp));
         dir_ray /= norm(dir_ray);
 
         return dir_ray;
     }
 
-    Vector3f square_to_polar_bounding_box_surface(const Point2f &point_on_square) const {
-        Float y_samp = 2*m_y_max_bound*point_on_square.y() - m_y_max_bound;
-        Float r_in_plane = safe_sqrt(1.f-y_samp*y_samp);
-        Float phi_samp = 2*m_phi_max_bound*point_on_square.x() - m_phi_max_bound;
-        
-        return {r_in_plane*sin(phi_samp),y_samp,r_in_plane*cos(phi_samp)};
-    }
-
 };
 
 
-MTS_IMPLEMENT_CLASS_VARIANT(IrradianceMeterDirectional, Sensor)
-MTS_EXPORT_PLUGIN(IrradianceMeterDirectional, "IrradianceMeterBoundingBox");
+MTS_IMPLEMENT_CLASS_VARIANT(IrradianceMeterUS, Sensor)
+MTS_EXPORT_PLUGIN(IrradianceMeterUS, "IrradianceMeterUS");
 NAMESPACE_END(mitsuba)

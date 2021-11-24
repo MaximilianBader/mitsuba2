@@ -156,12 +156,6 @@ public:
      */
     virtual Spectrum eval(const SurfaceInteraction3f &si, Mask active = true) const;
 
-
-    /// Return the local space to world space transformation
-    const AnimatedTransform *world_transform() const {
-        return m_world_transform.get();
-    }
-
     /**
      * \brief Does the method \ref sample_ray() require a uniformly distributed
      * 2D sample for the \c sample2 parameter?
@@ -194,6 +188,10 @@ public:
 
     /// Return a pointer to the medium that surrounds the emitter (const version)
     const Medium *medium() const { return m_medium.get(); }
+
+    /// Return the local space to world space transformation
+    const AnimatedTransform *world_transform() const { return m_world_transform.get(); }
+
 
     /**
      * \brief Return an axis-aligned box bounding the spatial
