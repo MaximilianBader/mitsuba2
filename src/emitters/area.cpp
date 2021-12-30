@@ -99,7 +99,9 @@ public:
         }
 
         // 2. Sample directional component
-        Vector3f local = warp::square_to_cosine_hemisphere(sample3);
+        Vector3f local = warp::square_to_uniform_hemisphere(sample3);
+        //Vector3f local = warp::square_to_cosine_hemisphere(sample3);
+        std::cout << "area::sample_ray()\n";
 
         Wavelength wavelength;
         Spectrum spec_weight;

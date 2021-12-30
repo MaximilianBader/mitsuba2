@@ -633,7 +633,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
             // DEBUGGING
             /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
-            emitter_eval_from_all_emissions.push_back(emitter->eval(si, active));*/
+            emitter_eval_from_all_emissions.push_back(emitter->eval(si, active));
             std::cout << "Direct intersection with emitter\n";
             std::cout << "Depth: " << depth+1 << "\n";
             std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
@@ -643,8 +643,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             std::cout << "Weight: " << weight_single_ray << "\n";
             std::cout << "throughput: " << throughput << "\n";
             std::cout << "emitter->eval(si, active): " << emitter->eval(si, active) << "\n";
-            //std::cout << "si.shape->sample_position(0.f, Point2f(1.f,1.f),active): " << si.shape->sample_position(0.f, Point2f(1.f,1.f),active) << "\n";
-            /*std::cout << "Ray origins: " << origins_sampled_rays << "\n";
+            std::cout << "si.shape->sample_position(0.f, Point2f(1.f,1.f),active): " << si.shape->sample_position(0.f, Point2f(1.f,1.f),active) << "\n";
+            std::cout << "Ray origins: " << origins_sampled_rays << "\n";
             std::cout << "Ray directions: " << directions_sampled_rays << "\n";*/
 
             // Clear weight of ray
@@ -714,22 +714,22 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
             // DEBUGGING:
             /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
-            emitter_eval_from_all_emissions.push_back(emitter_val);*/
+            emitter_eval_from_all_emissions.push_back(emitter_val);
             std::cout << "Emitter sampling successful\n";
             std::cout << "Depth: " << (depth+1) << "\n";
             std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
             std::cout << "Last interaction point: " << ray_interaction_points_complete[1] << "\n";
-            //std::cout << "Emitter position: " << ds.p << "\n";
+            std::cout << "Emitter position: " << ds.p << "\n";
             std::cout << "All interaction points: " << ray_interaction_points_list.back() << "\n";
             std::cout << "Weight: " << weight_single_ray << "\n";
-            /*std::cout << "Ray origins: " << origins_sampled_rays << ", " << si.p << "\n";
-            std::cout << "Ray directions: " << directions_sampled_rays << ", " << ds.d <<"\n";*/
+            std::cout << "Ray origins: " << origins_sampled_rays << ", " << si.p << "\n";
+            std::cout << "Ray directions: " << directions_sampled_rays << ", " << ds.d <<"\n";
             std::cout << "mis: " << mis <<"\n"; 
             std::cout << "throughput: " << throughput <<"\n";
             std::cout << "bsdf: " << bsdf << "\n";
             std::cout << "bsdf_val: " << bsdf_val <<"\n";
             std::cout << "emitter_val: " << emitter_val <<"\n";
-            std::cout << "ds: " << ds << "\n";
+            std::cout << "ds: " << ds << "\n";*/
 
             // Clear weight of ray
             weight_single_ray = Spectrum(0.f);
@@ -779,8 +779,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             emission_weight = mis_weight(bs.pdf, emitter_pdf);
 
             // DEBUGGING:
-            std::cout << "Same direction already sampled by emitter sampling:\n";
-            std::cout << "emission_weight: " << emission_weight << "\n";
+            /*std::cout << "Same direction already sampled by emitter sampling:\n";
+            std::cout << "emission_weight: " << emission_weight << "\n";*/
         }
 
         si = std::move(si_bsdf);
