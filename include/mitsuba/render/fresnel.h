@@ -61,7 +61,7 @@ std::tuple<Float, Float, Float, Float> fresnel(Float cos_theta_i, Float eta) {
 
     // ADAPTION FOR US MODELING
     //Float r = .5f * (sqr(a_s) + sqr(a_p));
-    Float r = sqr(a_p);
+    Float r = sqr(a_s);
 
     masked(r, special_case) = r_sc;
 
