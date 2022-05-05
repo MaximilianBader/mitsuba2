@@ -609,7 +609,6 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
     // ---------------------- First intersection ----------------------
 
     SurfaceInteraction3f si = scene->ray_intersect(ray, active);
-    ray_interaction_points.push_back(si.p);
     Mask valid_ray = si.is_valid();
     EmitterPtr emitter = si.emitter(scene);
 
@@ -621,7 +620,13 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
     for (int depth = 1;; ++depth) {
 
+        
+        ray_interaction_points.push_back(si.p);
+        throughput *= norm(ray_interaction_points[depth]-ray_interaction_points[depth-1])/2/M_PI/si.compute_abs_cos_theta(si.wi);  //Scale throughput to match US derivation (cos_abs_theta sensor is missing, because the ray is already sampled)
+    
+
         // ---------------- Intersection with emitters (ray directly hits emitter) ----------------
+        /* TODO: This only works for the CPU implementation -> For the GPU case this will be evaluated in any case -> Resetting of weights does not work */
         if (any_or<true>(neq(emitter, nullptr))) {
             weight_single_ray[active] = emission_weight * throughput * emitter->eval(si, active);
             
@@ -648,7 +653,10 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
             std::cout << "Ray directions: " << directions_sampled_rays << "\n";*/
 
             // Clear weight of ray
-            weight_single_ray = Spectrum(0.f);
+            weight_single_ray = Spectrum(0.f);                       
+
+            // Set rays inactive that hit the emitter
+            active = andnot(active,neq(emitter, nullptr));
 
         }
                 
@@ -680,6 +688,9 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         else if ((!is_cuda_array_v<Float> || m_max_depth < 0) && none(active))
             break;
 
+        // Stop if the shape is associated with a sensor (no reflections from sensors permitted)
+        active = andnot(active,si.is_sensor());
+
         // --------------------- Emitter sampling  ---------------------
         // -- Sample emitters in direction of surface interaction & check for ray hit ---
 
@@ -692,16 +703,22 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
                 si, sampler->next_2d(active_e), true, active_e);
             active_e &= neq(ds.pdf, 0.f);
 
+            // DEBUGGING:
+            std::cout << 'ds:' << ds << '\n';
+
             // Query the BSDF for that emitter-sampled direction
             Vector3f wo = si.to_local(ds.d);
             Spectrum bsdf_val = bsdf->eval(ctx, si, wo, active_e);
             bsdf_val = si.to_world_mueller(bsdf_val, -wo, si.wi);
 
+            // Scale bsdf val according to US match
+            bsdf_val *= norm(ds.p-si.p)/2/M_PI/si.compute_abs_cos_theta(wo);
+
             // Determine density of sampling that same direction using BSDF sampling
             Float bsdf_pdf = bsdf->pdf(ctx, si, wo, active_e);
 
-            Float mis = select(ds.delta, 1.f, mis_weight(ds.pdf, bsdf_pdf));
-            weight_single_ray[active] = mis * throughput * bsdf_val * emitter_val;
+            Float mis = select(ds.delta, 1.f, mis_weight(ds.pdf, bsdf_pdf));                    // mis: multiple importance sampling
+            weight_single_ray[active] = mis * throughput * bsdf_val * emitter_val;      // SCALING BY COS_THETA OF THE OUTGOING DIRECTION (BSDF) AND INCOMING DIRECTION (EMITTER), THEIR DISTANCE AND 2*PI MISSING
             
 
             // Add result to output vector
@@ -714,10 +731,10 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
             // DEBUGGING:
             /*throughput_vector_from_all_interactions_list.push_back(throughput_vector);
-            emitter_eval_from_all_emissions.push_back(emitter_val);
+            emitter_eval_from_all_emissions.push_back(emitter_val);*/
             std::cout << "Emitter sampling successful\n";
             std::cout << "Depth: " << (depth+1) << "\n";
-            std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
+            /*std::cout << "Ray origin: " << ray_interaction_points[0] << "\n";
             std::cout << "Last interaction point: " << ray_interaction_points_complete[1] << "\n";
             std::cout << "Emitter position: " << ds.p << "\n";
             std::cout << "All interaction points: " << ray_interaction_points_list.back() << "\n";
@@ -745,11 +762,15 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
 
         // DEBUGGING:
         /*if (depth == 1){
-           auto cos_theta_i =  Frame3f::cos_theta(si.wi);
-           std::cout << "First intersection: cos_theta_i: " << cos_theta_i << "\n";
+           auto cos_theta_i =  si.compute_abs_cos_theta(si.wi);
+           auto cos_theta_o =  si.compute_abs_cos_theta(bs.wo);
+           std::cout << "First intersection: cos_theta_i: " << cos_theta_i << ', test: ' << abs(dot(si.n,si.wi))<< "\n";
+           std::cout << "First intersection: cos_theta_o: " << cos_theta_o << ', test: ' << abs(dot(si.n,bs.wo))<< "\n";
+           std::cout << "First intersection: si.n " << si.n << '\n';
+           std::cout << "First intersectiom: bs: " << bs << "\n";
         }*/
 
-        throughput = throughput * bsdf_val;
+        throughput = throughput * sqrt(bsdf_val);           // TODO: THIS ONLY WORKS FOR REFLECTIONS. ADJUST the value accordingly
         active &= any(neq(depolarize(throughput), 0.f));
         if (none_or<false>(active))
             break;
@@ -759,6 +780,8 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         // Intersect the BSDF ray against the scene geometry
         ray = si.spawn_ray(si.to_world(bs.wo));
         SurfaceInteraction3f si_bsdf = scene->ray_intersect(ray, active);
+
+        throughput /= si.compute_abs_cos_theta(bs.wo);        // Update factor to scale according to US implementations
 
         // DEBUGGING
         /*origins_sampled_rays.push_back(ray.o);
@@ -784,7 +807,7 @@ PathLengthOriginIntegrator<Float, Spectrum>::sample_with_length_and_origin(const
         }
 
         si = std::move(si_bsdf);
-        ray_interaction_points.push_back(si.p);
+        //ray_interaction_points.push_back(si.p);
         
         // DEBUGGING:
         //throughput_vector.push_back(throughput);

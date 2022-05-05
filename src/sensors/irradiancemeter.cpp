@@ -73,13 +73,14 @@ public:
 
         // 2. Sample directional component
         Vector3f local = warp::square_to_cosine_hemisphere(sample3);
+        //Vector3f local = warp::square_to_uniform_hemisphere(sample3);
 
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);
 
         return std::make_pair(
             RayDifferential3f(ps.p, Frame3f(ps.n).to_world(local), time, wavelengths),
-            unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat>
+            unpolarized<Spectrum>(wav_weight) * math::Pi<ScalarFloat> / abs(dot(ps.n,local))                // Adapt weight of ray by dividing by cos_theta to match US
         );
     }
 

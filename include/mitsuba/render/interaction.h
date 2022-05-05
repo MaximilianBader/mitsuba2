@@ -351,6 +351,13 @@ struct SurfaceInteraction : Interaction<Float_, Spectrum_> {
             return any_nested(neq(dn_du, 0.f) || neq(dn_dv, 0.f));
     }
 
+    /**
+     * \brief Conpute abs of cosuine theta wrt to local frame
+     */
+    Float compute_abs_cos_theta(Vector3f d_local) const {
+       return abs(dot(n,d_local));
+    }
+
     //! @}
     // =============================================================
 

@@ -98,7 +98,7 @@ public:
 
         // 2. Sample directional component
         //Vector3f dir_ray = sample_dir_from_SIR(sample3, ps);
-        Vector3f dir_ray = warp::square_to_cosine_hemisphere(sample3);
+        Vector3f dir_ray = warp::square_to_uniform_hemisphere(sample3);
         
         // 3. Sample spectrum
         auto [wavelengths, wav_weight] = sample_wavelength<Float, Spectrum>(wavelength_sample);

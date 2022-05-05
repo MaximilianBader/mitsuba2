@@ -65,7 +65,7 @@ public:
 
         return select(
             Frame3f::cos_theta(si.wi) > 0.f,
-            unpolarized<Spectrum>(m_radiance->eval(si, active)),
+            unpolarized<Spectrum>(m_radiance->eval(si, active)/abs(dot(si.n,si.wi))),
             0.f
         );
     }
@@ -99,8 +99,8 @@ public:
         }
 
         // 2. Sample directional component
-        Vector3f local = warp::square_to_uniform_hemisphere(sample3);
-        //Vector3f local = warp::square_to_cosine_hemisphere(sample3);
+        //Vector3f local = warp::square_to_uniform_hemisphere(sample3);
+        Vector3f local = warp::square_to_cosine_hemisphere(sample3);
         std::cout << "area::sample_ray()\n";
 
         Wavelength wavelength;
@@ -116,7 +116,7 @@ public:
 
         return std::make_pair(
             Ray3f(si.p, si.to_world(local), time, wavelength),
-            unpolarized<Spectrum>(spec_weight) * (math::Pi<Float> / pdf)
+            unpolarized<Spectrum>(spec_weight) * (math::Pi<Float> / pdf / abs(dot(si.n,local)))
         );
     }
 
@@ -162,6 +162,9 @@ public:
 
             spec = m_radiance->eval(si, active) / ds.pdf;
         }
+
+        // Scale accordingly for US
+        spec /= abs(dot(ds.n,ds.d));
 
         ds.object = this;
         return { ds, unpolarized<Spectrum>(spec) & active };

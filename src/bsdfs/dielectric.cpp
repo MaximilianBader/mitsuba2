@@ -214,6 +214,9 @@ public:
         auto [r_i, cos_theta_t, eta_it, eta_ti] = fresnel(cos_theta_i, Float(m_eta));
         Float t_i = 1.f - r_i;
 
+        // DEBUGGING:
+        //std::cout << "Hit on dielectric:\ncos_theta_i: " << cos_theta_i << "\nm_eta: " << m_eta << "\nhas_reflection: " << has_reflection << "\neta_it: " << eta_it << "\nr_i: " << r_i << "\n";
+
         // Lobe selection
         BSDFSample3f bs = zero<BSDFSample3f>();
         Mask selected_r;
